@@ -1,0 +1,40 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>hri_pose_detect</name>
+  <version>0.0.0</version>
+  <description>ROS 2 node implementing 2D pose estimation, using YOLO. Part of ROS4HRI.</description>
+  <author email="carlosferreira@eprosima.com">Carlos Ferreira</author>
+  <maintainer email="carlosferreira@eprosima.com">Carlos Ferreira</maintainer>
+  <license>Apache License 2.0</license>
+
+  <url type="website">https://www.eprosima.com/</url>
+
+  <!-- <depend>python3-ultralytics</depend> -->
+
+  <exec_depend>builtin_interfaces</exec_depend>
+  <exec_depend>cv_bridge</exec_depend>
+  <exec_depend>diagnostic_msgs</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>hri_msgs</exec_depend>
+  <exec_depend>image_geometry</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+  <exec_depend>launch</exec_depend>
+  <exec_depend>lifecycle_msgs</exec_depend>
+  <exec_depend>message_filters</exec_depend>
+  <exec_depend>rcl_interfaces</exec_depend>
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+
+  <test_depend>ament_cmake_ros</test_depend>
+  <test_depend>hri_id_manager</test_depend>
+  <test_depend>hri_msgs</test_depend>
+  <test_depend>launch_ros</test_depend>
+  <test_depend>launch</test_depend>
+  <test_depend>python3-pytest</test_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>
