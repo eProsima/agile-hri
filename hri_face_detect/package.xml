@@ -1,0 +1,48 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>hri_face_detect</name>
+  <version>1.0.0</version>
+  <description>Face detection for ROS4HRI</description>
+  <author email="carlosferreira@eprosima.com">Carlos Ferreira</author>
+  <maintainer email="carlosferreira@eprosima.com">Carlos Ferreira</maintainer>
+  <license>Apache 2.0</license>
+
+  <url type="website">https://www.eprosima.com/</url>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>ament_cmake_python</buildtool_depend>
+  <buildtool_depend>python_cmake_module</buildtool_depend>
+
+  <build_depend>pybind11_vendor</build_depend>
+
+  <exec_depend>builtin_interfaces</exec_depend>
+  <exec_depend>diagnostic_msgs</exec_depend>
+  <exec_depend>hri_msgs</exec_depend>
+  <exec_depend>hri_id_manager</exec_depend>
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+  <exec_depend>lifecycle_msgs</exec_depend>
+  <exec_depend>python3-numpy</exec_depend>
+  <exec_depend>python3-opencv</exec_depend>
+  <exec_depend>python3-pil</exec_depend>
+  <exec_depend>python3-scipy</exec_depend>
+  <exec_depend>python3-tk</exec_depend>
+  <exec_depend>python3-transforms3d</exec_depend>
+  <exec_depend>rcl_interfaces</exec_depend>
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+  <exec_depend>tf2_ros</exec_depend>
+  <exec_depend>tf_transformations</exec_depend>
+
+  <test_depend>ament_cmake_ros</test_depend>
+  <test_depend>hri_id_manager</test_depend>
+  <test_depend>hri_msgs</test_depend>
+  <test_depend>launch_ros</test_depend>
+  <test_depend>launch</test_depend>
+  <test_depend>python3-pytest</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>
