@@ -1,0 +1,61 @@
+// Copyright 2024 Proyectos y Sistemas de Mantenimiento SL (eProsima).
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// This IDL is based on the msg done in https://github.com/ros4hri/hri_msgs/blob/humble-devel/msg/Skeleton2D.msg
+
+// Skeleton2D.idl
+// This IDL defines a 2D Skeleton.
+// It contains:
+//   - 18 constants defining critical points in an Skeleton.
+//   - ROS 2 keys supported by rmw_fastrtps and Fast DDS
+//   - Header for meta data
+//   - Confidence of the inference
+//   - An array containing all points defining an Skeleton
+
+module hri_msgs {
+    module msg {
+        module Skeleton2D_Constants {
+            // Follows OpenPose coco model convention
+            // https://github.com/CMU-Perceptual-Computing-Lab/openpose/blob/master/doc/output.md#pose-output-format-coco
+            const uint8 NOSE = 0;
+            const uint8 NECK = 1;
+            const uint8 RIGHT_SHOULDER = 2;
+            const uint8 RIGHT_ELBOW = 3;
+            const uint8 RIGHT_WRIST = 4;
+            const uint8 LEFT_SHOULDER = 5;
+            const uint8 LEFT_ELBOW = 6;
+            const uint8 LEFT_WRIST = 7;
+            const uint8 RIGHT_HIP = 8;
+            const uint8 RIGHT_KNEE = 9;
+            const uint8 RIGHT_ANKLE = 10;
+            const uint8 LEFT_HIP = 11;
+            const uint8 LEFT_KNEE = 12;
+            const uint8 LEFT_ANKLE = 13;
+            const uint8 LEFT_EYE = 14;
+            const uint8 RIGHT_EYE = 15;
+            const uint8 LEFT_EAR = 16;
+            const uint8 RIGHT_EAR = 17;
+        };
+
+        struct Skeleton2D {
+            @key string key;
+
+            std_msgs::msg::Header header; // Header timestamp should be acquisition time of the original image
+            float confidence;             // Confidence of detection of the body
+
+            // Array of 18 skeletal key points coordinates, one per skeletal key point, ordered per skeletal key points codes
+            hri_msgs::msg::NormalizedPointOfInterest2D skeleton[18];
+        };
+    };
+};

@@ -1,0 +1,46 @@
+// Copyright 2024 Proyectos y Sistemas de Mantenimiento SL (eProsima).
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// This IDL is based on the msg done in https://github.com/ros4hri/hri_msgs/blob/humble-devel/msg/NormalizedRegionOfInterest2D.msg
+
+// NormalizedRegionOfInterest2D.idl
+// This IDL defines a normalazed Region of Interest (ROI) in an image.
+// critical points, it should be used with models providing less details after inference (e.g. YOLO).
+// It contains:
+//   - ROS 2 keys supported by rmw_fastrtps and Fast DDS
+//   - Header for meta data
+//   - X and Y normalized coordinates of opposite corners of the ROI
+//   - Confidence of ROI
+
+module hri_msgs {
+    module msg {
+        struct NormalizedRegionOfInterest2D {
+            // This contains the top-leftmost and bottom-rightmost coordinates of a region of interest (typically in an image)
+            // the coordinates are always normalized and must belong to [0.,1.].
+            // The (xmin, ymin) tuple stores the top-leftmost coordinates of the ROI, while (xmax, ymax) represents the
+            // bottom-rightmost coordinates.
+            // c is a confidence level (between 0. and 1.) associated to that ROI
+
+            @key string key;
+
+            std_msgs::msg::Header header; // Header timestamp should be acquisition time of the original image
+
+            float xmin;
+            float ymin;
+            float xmax;
+            float ymax;
+            float c;
+        };
+    };
+};

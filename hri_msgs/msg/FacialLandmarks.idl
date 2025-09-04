@@ -1,0 +1,129 @@
+// Copyright 2024 Proyectos y Sistemas de Mantenimiento SL (eProsima).
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// This IDL is based on the msg done in https://github.com/ros4hri/hri_msgs/blob/humble-devel/msg/FacialLandmarks.msg
+
+// FacialLandmarks.idl
+// This IDL defines a 2D Face. It serves the same purpose as Face2D but with more
+// critical points, it should be used with models providing more details after inference (e.g. Google Mediapipe).
+// This IDL contains:
+//   - 70 constants defining critical points in a Face.
+//   - ROS 2 keys supported by rmw_fastrtps and Fast DDS
+//   - Header for meta data
+//   - An array containing all points defining a Face
+//   - Image size
+
+module hri_msgs {
+    module msg {
+        module FacialLandmarks_Constants {
+            // Facial landmarks codes
+            // Follow dlib and OpenPose conventions
+            // https://github.com/CMU-Perceptual-Computing-Lab/openpose/blob/master/doc/02_output.md#face-output-format
+            const uint8 RIGHT_EAR=0;
+            const uint8 RIGHT_PROFILE_1=1;
+            const uint8 RIGHT_PROFILE_2=2;
+            const uint8 RIGHT_PROFILE_3=3;
+            const uint8 RIGHT_PROFILE_4=4;
+            const uint8 RIGHT_PROFILE_5=5;
+            const uint8 RIGHT_PROFILE_6=6;
+            const uint8 RIGHT_PROFILE_7=7;
+
+            const uint8 MENTON=8;
+
+            const uint8 LEFT_EAR=16;
+            const uint8 LEFT_PROFILE_1=15;
+            const uint8 LEFT_PROFILE_2=14;
+            const uint8 LEFT_PROFILE_3=13;
+            const uint8 LEFT_PROFILE_4=12;
+            const uint8 LEFT_PROFILE_5=11;
+            const uint8 LEFT_PROFILE_6=10;
+            const uint8 LEFT_PROFILE_7=9;
+
+            const uint8 RIGHT_EYEBROW_OUTSIDE=17;
+            const uint8 RIGHT_EYEBROW_1=18;
+            const uint8 RIGHT_EYEBROW_2=19;
+            const uint8 RIGHT_EYEBROW_3=20;
+            const uint8 RIGHT_EYEBROW_INSIDE=21;
+
+            const uint8 RIGHT_EYE_OUTSIDE=36;
+            const uint8 RIGHT_EYE_TOP_1=37;
+            const uint8 RIGHT_EYE_TOP_2=38;
+            const uint8 RIGHT_EYE_INSIDE=39;
+            const uint8 RIGHT_EYE_BOTTOM_1=41;
+            const uint8 RIGHT_EYE_BOTTOM_2=40;
+
+            const uint8 RIGHT_PUPIL=68;
+
+            const uint8 LEFT_EYEBROW_OUTSIDE=26;
+            const uint8 LEFT_EYEBROW_1=25;
+            const uint8 LEFT_EYEBROW_2=24;
+            const uint8 LEFT_EYEBROW_3=23;
+            const uint8 LEFT_EYEBROW_INSIDE=22;
+
+            const uint8 LEFT_EYE_OUTSIDE=45;
+            const uint8 LEFT_EYE_TOP_1=44;
+            const uint8 LEFT_EYE_TOP_2=43;
+            const uint8 LEFT_EYE_INSIDE=42;
+            const uint8 LEFT_EYE_BOTTOM_1=46;
+            const uint8 LEFT_EYE_BOTTOM_2=47;
+
+            const uint8 LEFT_PUPIL=69;
+
+            const uint8 SELLION=27;
+            const uint8 NOSE_1=28;
+            const uint8 NOSE_2=29;
+            const uint8 NOSE=30;
+
+            const uint8 NOSTRIL_1=31;
+            const uint8 NOSTRIL_2=32;
+            const uint8 NOSTRIL_3=33;
+            const uint8 NOSTRIL_4=34;
+            const uint8 NOSTRIL_5=35;
+
+            const uint8 MOUTH_OUTER_RIGHT=48;
+            const uint8 MOUTH_OUTER_TOP_1=49;
+            const uint8 MOUTH_OUTER_TOP_2=50;
+            const uint8 MOUTH_OUTER_TOP_3=51;
+            const uint8 MOUTH_OUTER_TOP_4=52;
+            const uint8 MOUTH_OUTER_TOP_5=53;
+            const uint8 MOUTH_OUTER_LEFT=54;
+            const uint8 MOUTH_OUTER_BOTTOM_1=59;
+            const uint8 MOUTH_OUTER_BOTTOM_2=58;
+            const uint8 MOUTH_OUTER_BOTTOM_3=57;
+            const uint8 MOUTH_OUTER_BOTTOM_4=56;
+            const uint8 MOUTH_OUTER_BOTTOM_5=55;
+
+            const uint8 MOUTH_INNER_RIGHT=60;
+            const uint8 MOUTH_INNER_TOP_1=61;
+            const uint8 MOUTH_INNER_TOP_2=62;
+            const uint8 MOUTH_INNER_TOP_3=63;
+            const uint8 MOUTH_INNER_LEFT=64;
+            const uint8 MOUTH_INNER_BOTTOM_1=67;
+            const uint8 MOUTH_INNER_BOTTOM_2=66;
+            const uint8 MOUTH_INNER_BOTTOM_3=65;
+        };
+
+        struct FacialLandmarks {
+            @key string key;
+
+            std_msgs::msg::Header header;
+
+            // Array of 70 landmark normalized coordinates, one per landmark, ordered per landmark code
+            hri_msgs::msg::NormalizedPointOfInterest2D landmarks[70];
+
+            uint32 height;  // Image height in pixels, that is, number of rows
+            uint32 width;   // Image width in pixels, that is, number of columns
+        };
+    };
+};
