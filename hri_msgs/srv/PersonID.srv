@@ -1,0 +1,36 @@
+# Copyright 2024 Proyectos y Sistemas de Mantenimiento SL (eProsima).
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# PersonID.srv
+# This service is used to link faces and bodies of the same image.
+# The request consists of:
+#   - Normalized Region of Interest (ROI)
+#   - Type to indicate if a face or a body wants to be matched
+#   - A ref point of the element. For bodies is placed on the upper part and
+#     for faces is the center of the Face ROI.
+# The response consists of:
+#   - The ID of the object. This ID will be the same as the matching entity in case
+#     there exists a matching entity. Otherwise, it will be a uniquely new ID
+
+# Request
+float32 xmin
+float32 ymin
+float32 xmax
+float32 ymax
+string type
+float32 xref
+float32 yref
+---
+# Response
+string id
