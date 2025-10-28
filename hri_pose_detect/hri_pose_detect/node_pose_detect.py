@@ -373,7 +373,7 @@ class NodePoseDetect(Node):
         id_req = PersonID.Request()
         id_req.xmin, id_req.ymin, id_req.xmax, id_req.ymax = bb.get_norm_coords()
         id_req.xref, id_req.yref = point
-        id_req.type = "body"
+        id_req.type = PersonID.Request.BODY
         self.get_logger().debug(f"Requesting ID for body at {bb.get_norm_coords()} and ref_point: {point}")
         future = self.client_id.call_async(id_req)
 
