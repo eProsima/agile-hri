@@ -19,7 +19,7 @@ from rcl_interfaces.msg import ParameterDescriptor
 
 import rclpy
 from rclpy.action import ActionServer, GoalResponse, CancelResponse
-from rclpy.executors import MultiThreadedExecutor, ExternalShutdownException
+from rclpy.executors import ExternalShutdownException, MultiThreadedExecutor
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
 
@@ -191,6 +191,8 @@ class NodeSTT(Node):
         self.is_recording = True
         self.audio_lock = threading.Lock()
         self.segment_ready = threading.Event()  # Event to signal that a segment is ready to be processed
+        self.stop_event = threading.Event()     # Event to signal stopping the recording due to user cancellation
+        self.audio_thread = None
 
         # Check with fixed number of chunks
         self.chunks_recorded = 0
@@ -227,9 +229,13 @@ class NodeSTT(Node):
     def goal_callback(self, goal_request):
         """ Callback to accept or reject the STT action. """
         if goal_request.start is True:
-            self.get_logger().info('Received request to start recording.')
-            return GoalResponse.ACCEPT
-        self.get_logger().info('Received wrong request to start recording.')
+            if not self.audio_thread:
+                self.get_logger().info('Received request to start recording.')
+                return GoalResponse.ACCEPT
+            else:
+                self.get_logger().warning('Received request to start recording while another recording is in progress.')
+        else:
+            self.get_logger().info('Received wrong request to start recording.')
         return GoalResponse.REJECT
 
     def cancel_callback(self, goal_handle):
@@ -241,22 +247,27 @@ class NodeSTT(Node):
     async def execute_callback(self, goal_handle):
         """ Callback to execute the STT action. """
         # Start multithreaded audio recording
-        audio_thread = threading.Thread(target=self.audio_thread_func,
+        self.audio_thread = threading.Thread(target=self.audio_thread_func,
                                         args=(goal_handle, self.vad))
-        audio_thread.start()
+        self.audio_thread.start()
 
-        self.process_audio(goal_handle)
-
-        audio_thread.join()
+        try:
+            self.process_audio(goal_handle)
+        except Exception as e:
+            self.get_logger().error(f"Exception in process audio thread: {e}")
+        finally:
+            # Wait for the audio thread to finish
+            self._on_shutdown()
 
         result = Stt.Result()
         result.speech = self.final_question
-        if self.final_question == '':
-            self.get_logger().warning('Not able to capture any speech')
-            goal_handle.abort()
-        else:
-            self.get_logger().info(f'Audio recording finished with speech:{result.speech}.')
-            goal_handle.succeed()
+        if rclpy.ok():
+            if self.final_question == '':
+                self.get_logger().warning('Not able to capture any speech')
+                goal_handle.abort()
+            else:
+                self.get_logger().info(f'Audio recording finished with speech:{result.speech}.')
+                goal_handle.succeed()
 
         # Reset variables to be able to process a new client request
         self.reset_vars()
@@ -264,13 +275,14 @@ class NodeSTT(Node):
 
     def publish_face_expression(self, expression: str):
         """ Publish a face expression. """
-        if self.should_pub_face_expression:
-            face_msg = FaceInterface()
-            if expression == 'listening':
-                face_msg.face = FaceInterface.LISTENING
-            else:
-                face_msg.face = FaceInterface.NEUTRAL
-            self.publisher_face_exp.publish(face_msg)
+        if rclpy.ok():
+            if self.should_pub_face_expression:
+                face_msg = FaceInterface()
+                if expression == 'listening':
+                    face_msg.face = FaceInterface.LISTENING
+                else:
+                    face_msg.face = FaceInterface.NEUTRAL
+                self.publisher_face_exp.publish(face_msg)
 
     def save_audio_to_wav(self, filename, audio_data, channels, rate):
         """ Save a .wav file with the configuration received."""
@@ -288,6 +300,43 @@ class NodeSTT(Node):
         self.audio_buffer = []
         self.silent_chunks = 0
         self.is_recording = True
+        self.stop_event.clear()
+        self.segment_ready.clear()
+
+    def _on_shutdown(self):
+        """ Shutdown callback to stop the audio stream and terminate PyAudio. """
+        # Signal main thread and audio thread to stop
+        self.stop_event.set()
+        self.segment_ready.set()
+
+        if self.audio_thread and self.audio_thread.is_alive():
+            self.audio_thread.join(timeout=2.0)
+            if self.audio_thread.is_alive():
+                self.get_logger().warning("Audio thread did not finish in time.")
+        self.audio_thread = None
+
+    def _stop_stream(self):
+        """
+        Stop and close the audio stream and terminate PyAudio from external method.
+        Stream and PyAudio are assigned to class variables to be accessible from main thread too.
+        """
+        try:
+            if self.stream is not None:
+                try:
+                    self.stream.stop_stream()
+                finally:
+                    self.stream.close()
+        except Exception:
+            pass
+        finally:
+            self.stream = None
+        try:
+            if self.pya is not None:
+                self.pya.terminate()
+        except Exception:
+            pass
+        finally:
+            self.pya = None
 
     def process_audio(self, goal_handle):
         """ Process the audio chunks in the buffer and transcribe them. It is executed in a separate thread than the recording. """
@@ -302,7 +351,7 @@ class NodeSTT(Node):
         else:
             model = self.model
 
-        while self.is_recording or len(self.audio_buffer) > 0:
+        while (not self.stop_event.is_set() and (self.is_recording or len(self.audio_buffer) > 0)):
             # Wait for a speech break to process chunks
             self.get_logger().debug("Waiting for segment_ready in process_thread.")
             self.segment_ready.wait()
@@ -356,9 +405,9 @@ class NodeSTT(Node):
         """ Audio recording thread. Checks for voice activity and records audio chunks. """
         try:
             # Initialize PyAudio
-            p = pyaudio.PyAudio()
-            stream = p.open(channels=self.channels,
-                            format=p.get_format_from_width(WIDTH),
+            self.pya = pyaudio.PyAudio()
+            self.stream = self.pya.open(channels=self.channels,
+                            format=self.pya.get_format_from_width(WIDTH),
                             frames_per_buffer=self.chunk,
                             input_device_index=self.index,
                             input=True,
@@ -374,9 +423,9 @@ class NodeSTT(Node):
         try:
             started = False
             self.is_recording = True
-            while self.is_recording:
+            while not self.stop_event.is_set() and self.is_recording:
                 # Read a chunk of data from the stream
-                audio_chunk = stream.read(self.chunk, exception_on_overflow=False)
+                audio_chunk = self.stream.read(self.chunk, exception_on_overflow=False)
                 self.chunks_recorded += 1
 
                 # Convert the audio chunk to a numpy array
@@ -432,9 +481,7 @@ class NodeSTT(Node):
         finally:
             # Stop recording
             self.publish_face_expression('neutral')
-            stream.stop_stream()
-            stream.close()
-            p.terminate()
+            self._stop_stream()
             self.get_logger().debug("Signaling segment_ready in end function.")
             self.segment_ready.set()
 
@@ -479,6 +526,9 @@ def main(args=None):
     try:
         executor.spin()
     except (KeyboardInterrupt, ExternalShutdownException):
+        node.get_logger().info("Shutting down STT node due to external signal...")
+        node._on_shutdown()
+    finally:
         node.destroy_node()
 
 
