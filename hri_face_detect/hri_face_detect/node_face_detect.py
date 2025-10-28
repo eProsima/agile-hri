@@ -289,7 +289,7 @@ class NodeFaceDetect(Node):
         id_req = PersonID.Request()
         id_req.xmin, id_req.ymin, id_req.xmax, id_req.ymax = bb.get_norm_coords()
         id_req.xref, id_req.yref = point[0], point[1]
-        id_req.type = "face"
+        id_req.type = PersonID.Request.FACE
         self.get_logger().debug(f"Requesting ID for face at {bb.get_norm_coords()} and ref point: {point}")
         future = self.client_id.call_async(id_req)
 
