@@ -39,6 +39,7 @@ module hri_msgs {
             const uint8 RIGHT_PROFILE_6=6;
             const uint8 RIGHT_PROFILE_7=7;
 
+            // This landmark refers to 'CHIN'. The original name (MENTON) is preserved to keep compatibility
             const uint8 MENTON=8;
 
             const uint8 LEFT_EAR=16;
