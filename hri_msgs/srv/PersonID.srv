@@ -36,4 +36,4 @@ float32 xref
 float32 yref
 ---
 # Response
-uint8 id
+string id
