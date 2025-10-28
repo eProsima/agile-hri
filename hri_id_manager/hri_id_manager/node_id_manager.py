@@ -79,9 +79,9 @@ class IDManager(Node):
         roi = [request.xmin, request.ymin, request.xmax, request.ymax]
         ref_point = [request.xref, request.yref]
         self.get_logger().debug(f"Received request [{request.type}]. ROI: {roi}. Ref: {ref_point}.")
-        if request.type == "body":
+        if request.type == PersonID.Request.BODY:
             response.id = self.check_existing_face(roi, ref_point)
-        elif request.type == "face":
+        elif request.type == PersonID.Request.FACE:
             response.id = self.check_existing_body(roi, ref_point)
         else:
             self.get_logger().error(f"Unknown type {request.type}.")
@@ -90,11 +90,11 @@ class IDManager(Node):
         with self.dict_lock:
             if response.id not in self.persons_:
                 self.persons_[response.id] = PersonEntity()
-                if request.type == "body":
+                if request.type == PersonID.Request.BODY:
                     self.persons_[response.id].body_position = roi
                     self.persons_[response.id].face_from_body = ref_point
                     self.persons_[response.id].times["body"] = self.get_clock().now()
-                elif request.type == "face":
+                elif request.type == PersonID.Request.FACE:
                     self.persons_[response.id].face_position = roi
                     # No need to save face_from_body because it is calculated from body landmarks
                     self.persons_[response.id].times["face"] = self.get_clock().now()
