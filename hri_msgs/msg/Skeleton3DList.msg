@@ -13,7 +13,7 @@
 # limitations under the License.
 
 # Skeleton2DList.msg
-# This message includes a list of Skeleton3D msgs to represent the positino of all the
+# This message includes a list of Skeleton3D msgs to represent the position of all the
 # bodies of a single image
 
 std_msgs/Header header

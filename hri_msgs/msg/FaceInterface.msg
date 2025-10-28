@@ -12,9 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# FaceInterface.msg
+# This message defines the possible visual states (or "modes") for the robot's face interface.
+# The robot's facial expression or animation should change according to the mode value received.
+# Each mode corresponds to a specific robot activity or idle state.
+
 string SPEAKING = speak      # TTS action
 string DANCING = dance       # Dancing action
 string LISTENING = listen    # STT action
 string NEUTRAL = neutral     # No specific action that requires face interaction
 
-string face neutral
+string face neutral          # Current face mode. Should be set to one of the constants above

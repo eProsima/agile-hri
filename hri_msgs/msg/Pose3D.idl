@@ -16,7 +16,7 @@
 // This IDL defines a 3D Pose. It can be used to define a goal position in space
 // for a specific robot.
 // It contains:
-//   - ROS 2 keys supported by rmw_fastrtps and Fast DDS
+//   - Key annotation serving as unique identifier of the Pose. Supported only by rmw_fastrtps and Fast DDS
 //   - A 3D stamped point
 
 module hri_msgs {

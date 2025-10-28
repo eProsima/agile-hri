@@ -16,7 +16,7 @@
 // This IDL defines a 3D Skeleton.
 // It contains:
 //   - 18 constants defining critical points in an Skeleton (same as Skeleton2D).
-//   - ROS 2 keys supported by rmw_fastrtps and Fast DDS
+//   - Key annotation serving as unique identifier of the Skeleton. Supported only by rmw_fastrtps and Fast DDS
 //   - Header for meta data
 //   - Confidence of the inference
 //   - An array containing all points defining an Skeleton

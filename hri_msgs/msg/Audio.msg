@@ -22,10 +22,9 @@ uint8 preset        # Variable to indicate that this audio refers to a known pre
 uint8 num_channels  # Number of channels of the audio sent
 int32 sample_rate   # Sample rate of the audio
 string subtype      # Format of the audio file (e.g. wav)
-uint8 id            # ID to unequivocally identify the audio. It is user responsability
+uint8 id            # ID to unequivocally identify the audio. It is user responsibility
                     # to ensure the uniqueness of this field.
-uint8 sentences     # To increase overall efficiency of the audio communication, an Audio.msg can
-                    # be used to send a partial audio of a big audio message. The sentences field
-                    # indicates the number of partial messages that are needed to complete the whole
-                    # audio. A whole audio is normally splitted into sentences.
+uint8 sentences     # To increase overall efficiency of the audio communication, an Audio.msg can be
+                    # used to send a partial audio of a big audio message. The sentences field indicates
+                    # the number of partial messages that are needed to complete the whole audio.
 byte[] data         # Raw data of the Audio message

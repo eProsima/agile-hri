@@ -12,10 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# load = True means to load the model
-# load = False means to unload the model
+# Reload.srv
+# This service is used to reload the model.
+# The request consists of:
+#   - load -> True means to load the model and false to unload it
+# The response consists of:
+#   - state -> True means the model is loaded and false unloaded
+
+# Request
 bool load
 ---
-# state = True means the model is loaded
-# state = False means the modes is unloaded
+# Response
 bool state

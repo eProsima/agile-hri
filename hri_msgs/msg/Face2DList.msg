@@ -14,7 +14,8 @@
 
 # Face2DList.msg
 # This message contains all info required to pinpoint all faces in a single image frame.
-
+# Faces are limited to a maximum of 10. Any scenario requiring a higher number
+# of face detections requires to modify this message and `Skeleton2DList.msg`
 
 std_msgs/Header header                   # Header for meta data
 

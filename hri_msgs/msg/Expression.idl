@@ -16,7 +16,7 @@
 
 // Expression.idl
 // This IDL defines a Facial expression or emotion. It contains:
-//   - ROS 2 keys supported by rmw_fastrtps and Fast DDS
+//   - Key annotation serving as unique identifier of the Expression. Supported only by rmw_fastrtps and Fast DDS
 //   - Header for meta data
 //   - Expression defined as a string to increase flexibility
 //   - Confidence of the model inference

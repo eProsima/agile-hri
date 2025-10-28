@@ -15,10 +15,9 @@
 // This IDL is based on the msg done in https://github.com/ros4hri/hri_msgs/blob/humble-devel/msg/NormalizedRegionOfInterest2D.msg
 
 // NormalizedRegionOfInterest2D.idl
-// This IDL defines a normalazed Region of Interest (ROI) in an image.
-// critical points, it should be used with models providing less details after inference (e.g. YOLO).
+// This IDL defines a normalized Region of Interest (ROI) in an image.
 // It contains:
-//   - ROS 2 keys supported by rmw_fastrtps and Fast DDS
+//   - Key annotation serving as unique identifier of the ROI. Supported only by rmw_fastrtps and Fast DDS
 //   - Header for meta data
 //   - X and Y normalized coordinates of opposite corners of the ROI
 //   - Confidence of ROI

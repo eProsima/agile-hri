@@ -14,7 +14,9 @@
 
 # Skeleton2DList.msg
 # This message includes a list of Skeleton2D msgs and ROIs to represent all the
-# bodies of a single image
+# bodies of a single image.
+# Bodies are limited to a maximum of 10. Any scenario requiring a higher number
+# of body detections requires to modify this message and `Face2DList.msg`
 
 std_msgs/Header header
 

@@ -82,7 +82,6 @@ string WAKEUP = __intent_wakeup__
 # listed in the following table (note that the `agent` role can be optionally
 # added to all intents, and is omitted from the table for clarity):
 #
-# .. [please keep the RST table syntax below, as it is used to automatically parse the list of intents by some nodes]#
 # .. BEGIN_INTENTS_TABLE
 # +------------------+----------------------------------------------------------------------+----------------------------------------------+---------------------------------------------------------------------------+
 # | **Intent**       | **Description**                                                      | **Required thematic roles**                  | **Optional thematic roles**                                               |
@@ -177,7 +176,7 @@ string MODALITY_INTERNAL = __modality_internal__
 #  Intent priority
 #
 # The priority of this intent. This MIGHT be used as a hint by the robot's task
-# scheduler, however is scheduler is *not* forced to respect this priority
+# scheduler, however the scheduler is *not* forced to respect this priority
 # level. 0 is the lowest priority, 128 is the default priority, 255 is the
 # highest priority.
 uint8 priority

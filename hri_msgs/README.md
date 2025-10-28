@@ -5,13 +5,13 @@ for Human-Robot Interaction (HRI) applications.
 
 These messages expand the [ROS REP-155](https://ros.org/reps/rep-0155.html) by introducing [keys](https://docs.ros.org/en/rolling/Tutorials/Advanced/Topic-Keys/Topic-Keys-Tutorial.html), compatible with [Fast DDS](https://github.com/eProsima/Fast-DDS).
 Keys are ideal for HRI interactions and introduce a huge efficiency improvement to the REP-155.
-Keyed topics allow allow the user to reduce the number of required resources (topics, along with their associated publisher and subscriber) by multiplexing updates of several objects of the same kind into a single resource.
+Keyed topics allow the user to reduce the number of required resources (topics, along with their associated publisher and subscriber) by multiplexing updates of several objects of the same kind into a single resource.
 
-For example, the ROS REP-155 indicates that a ROS 2 Node that detects human faces must create the namespace "/humans/faces/<faceID>/" for each recongized face.
+For example, the ROS REP-155 indicates that a ROS 2 Node that detects human faces must create the namespace "/humans/faces/<faceID>/" for each recognized face.
 If every face requires to publish 8 differents topics, the detection of a new face will automatically add to the network 8 new publisher and 8 new subscriber, associated to the new topics created.
 In an environment with 10 faces, this set up will require 160 pubs/subs to work (_(8 + 8) * num\_topics_).
 With keyed topics, the number of publishers and subscribers is fixed, because the same topic is used for every detected face.
-This means that no extra entities are created dinamically.
+This means that no extra entities are created dynamically.
 Additionally, in the same environment previously described, only 16 pubs/subs are required, **independently** of the number of faces present.
 
 The same logic applies to other elements of the HRI stack, as bodies or voices.

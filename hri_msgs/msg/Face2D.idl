@@ -17,7 +17,7 @@
 // critical points, it should be used with models providing less details after inference (e.g. YOLO).
 // It contains:
 //   - 5 constants defining critical points in a Face.
-//   - ROS 2 keys supported by rmw_fastrtps and Fast DDS
+//   - Key annotation serving as unique identifier of the Face. Supported only by rmw_fastrtps and Fast DDS
 //   - Header for meta data
 //   - Confidence of the inference
 //   - An array containing all points defining a Face

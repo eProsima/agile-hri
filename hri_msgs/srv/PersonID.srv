@@ -23,14 +23,17 @@
 #   - The ID of the object. This ID will be the same as the matching entity in case
 #     there exists a matching entity. Otherwise, it will be a uniquely new ID
 
+uint8 FACE = 0
+uint8 BODY = 1
+
 # Request
 float32 xmin
 float32 ymin
 float32 xmax
 float32 ymax
-string type
+uint8 type
 float32 xref
 float32 yref
 ---
 # Response
-string id
+uint8 id

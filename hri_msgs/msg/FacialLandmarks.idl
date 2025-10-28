@@ -19,7 +19,7 @@
 // critical points, it should be used with models providing more details after inference (e.g. Google Mediapipe).
 // This IDL contains:
 //   - 70 constants defining critical points in a Face.
-//   - ROS 2 keys supported by rmw_fastrtps and Fast DDS
+//   - Key annotation serving as unique identifier of the FacialLandmarks. Supported only by rmw_fastrtps and Fast DDS
 //   - Header for meta data
 //   - An array containing all points defining a Face
 //   - Image size
