@@ -104,7 +104,7 @@ class TTSGen(Node):
             Tts,
             '/hri_tts',
             self.tts_server_callback,
-            goal_callback=self.tts_goal_callback,)
+            goal_callback=self.tts_goal_callback)
 
         # Get device
         device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -115,7 +115,7 @@ class TTSGen(Node):
         self.get_logger().info('TTS generator started')
 
     def tts_goal_callback(self, goal_request):
-        """ Callback to accept or reject the LLMManager action. """
+        """ Callback to accept or reject the TTS action. """
         if goal_request.speech is not None:
             self.get_logger().debug('Received request to start TTS.')
             return GoalResponse.ACCEPT
@@ -133,9 +133,9 @@ class TTSGen(Node):
             self.tts.tts_to_file(text=phrase_preprocessed,
                                     file_path=self.file_path,
                                     split_sentences=False)
-            self.get_logger().info(f'Saved audio for to {self.file_path}')
-        except:
-            self.get_logger().error('Error generating audio file')
+            self.get_logger().info(f'Saved audio to {self.file_path}')
+        except Exception as e:
+            self.get_logger().error(f'Error generating audio file: {e}')
             goal_handle.abort()
             return
 

@@ -12,6 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""
+Small utility to parse and list available ALSA playback devices.
+Usage examples:
+  python list_speakers.py
+  ros2 run hri_tts list_speakers
+"""
+
 import re
 import shutil
 import subprocess

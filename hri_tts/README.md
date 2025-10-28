@@ -30,7 +30,7 @@ Nonetheless, a **Nvidia GPU is recommended** to speed up inferences.
   Whether the action should wait for the /tts/finished message before completing (wait for audio playback).
   If this option is set to True, the Action server will wait until a message is received in topic /tts/finished to return
   the result of the Action. It will wait a variable timeout computed from the duration of the audio generated.
-  This paramater is designed to facilitate the integration of this node into different pipelines.
+  This parameter is designed to facilitate the integration of this node into different pipelines.
 
 #### TTS Subscriber
 

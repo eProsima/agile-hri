@@ -104,7 +104,7 @@ class TTSPub(Node):
         self.get_logger().info('TTS node started')
 
     def tts_goal_callback(self, goal_request):
-        """ Callback to accept or reject the LLMManager action. """
+        """ Callback to accept or reject the TTS action. """
         if goal_request.speech is not None:
             self.get_logger().debug('Received request to start TTS.')
             return GoalResponse.ACCEPT
@@ -113,9 +113,10 @@ class TTSPub(Node):
 
     def tts_cancel_callback(self, goal_handle):
         """ Callback to cancel the TTS action. """
-        self.get_logger().info('Received request to cancel in progress TTS.')
-        self.tts_finished = True
-        self.condition.notify_all()
+        with self.condition:
+            self.get_logger().info('Received request to cancel in progress TTS.')
+            self.tts_finished = True
+            self.condition.notify_all()
         return CancelResponse.ACCEPT
 
     def tts_server_callback(self, goal_handle):
@@ -157,6 +158,11 @@ class TTSPub(Node):
 
         # Handle text-to-speech synthesis for arbitrary phrases
         else:
+            if goal_handle.request.speech == "":
+                self.get_logger().warn("Received empty speech request.")
+                result.finished = False
+                goal_handle.abort()
+                return
             # Call the function to process the incoming message
             phrases = self.split_into_phrases(goal_handle.request.speech)
 
@@ -173,13 +179,13 @@ class TTSPub(Node):
                 self.tts.tts_to_file(text=phrase_preprocessed,
                                      file_path=temp_file.name,
                                      split_sentences=False)
-                self.get_logger().debug(f'Saved audio for preproccessed phrase "{phrase_preprocessed}" to {temp_file.name}')
+                self.get_logger().debug(f'Saved audio for preprocessed phrase "{phrase_preprocessed}" to {temp_file.name}')
 
                 # Send the feedback
                 feedback_msg.sentences += 1
                 new_duration = self.get_wav_duration(temp_file.name)
-                feedback_msg.duration.sec += new_duration.sec
-                feedback_msg.duration.nanosec += new_duration.nanosec
+                if new_duration is not None:
+                    feedback_msg.duration = self.add_and_normalize(feedback_msg.duration, new_duration)
                 goal_handle.publish_feedback(feedback_msg)
                 timeout_margin += new_duration.sec
                 self.get_logger().debug(f"Duration of {temp_file.name}: {feedback_msg.duration} seconds")
@@ -191,8 +197,10 @@ class TTSPub(Node):
                     msg.id = i
                     self.audio_publisher.publish(msg)
                     self.get_logger().info(f'Sent audio file: {temp_file.name} of {len(audio_data)} bytes')
-                except subprocess.CalledProcessError:
-                    self.get_logger().warn(f'Failed to send file: {temp_file.name}')
+                except Exception as e:
+                    self.get_logger().warn(f'Failed to send file: {temp_file.name}: {e}')
+                finally:
+                    temp_file.close()
 
         # Now wait for the /hri_tts/finished message
         result = Tts.Result()
@@ -265,6 +273,25 @@ class TTSPub(Node):
         except FileNotFoundError:
             self.get_logger().error(f"File {file_path} not found.")
             return None
+
+    def add_and_normalize(self, dst, delta):
+        """
+        Add delta (Time/Duration) into dst (Time/Duration) and normalize.
+        Assumes fields: .sec (int), .nanosec (int, 0..1e9-1)
+
+        :param dst: Destination Time/Duration to add into.
+        :param delta: Time/Duration to add.
+        :return: The normalized sum of dst and delta.
+        """
+        dst.sec += int(delta.sec)
+        dst.nanosec += int(delta.nanosec)
+
+        # Carry if nanosec overflowed
+        if dst.nanosec >= 1_000_000_000:
+            carry, dst.nanosec = divmod(dst.nanosec, 1_000_000_000)
+            dst.sec += carry
+
+        return dst
 
 
 def main(args=None):

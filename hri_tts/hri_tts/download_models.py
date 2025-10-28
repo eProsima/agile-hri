@@ -17,6 +17,7 @@ Small utility to pre-download TTS model.
 Usage examples:
   python download_models.py
   python download_models.py -m tts_models/en/ljspeech/tacotron2-DDC
+  ros2 run hri_tts download_tts_models
 """
 
 import argparse

@@ -16,7 +16,6 @@ import os
 import rclpy
 import re
 import subprocess
-import sys
 import tempfile
 
 from ament_index_python.packages import get_package_share_directory
@@ -27,8 +26,6 @@ from hri_msgs.msg import FaceInterface, Audio
 from std_msgs.msg import Bool
 
 from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
-
-from hri_tts.list_speakers import parse_aplay_l
 
 
 def pick_control(card: int) -> str | None:
@@ -117,7 +114,7 @@ class TTSSub(Node):
         # Check if the directory exists to avoid runtime exceptions
         if not os.path.exists(self.audio_files_path):
             self.get_logger().error(f"Audio directory not found: {self.audio_files_path}")
-            sys.exit(1)
+            raise FileNotFoundError(f"Audio directory not found: {self.audio_files_path}")
         else:
             self.get_logger().info(f"Audio directory found: {self.audio_files_path}")
 
@@ -148,7 +145,7 @@ class TTSSub(Node):
         # Find which sound card is the one with the actual speaker
         self.card_device = f'plughw:{self.card_number},{self.device_idx}' if self.card_number is not None else 'plughw:0,0'
         self.volume_control = None
-        # Stablish the volume
+        # Establish the volume
         try:
             self.volume_control = pick_control(self.card_number) if self.card_number is not None else None
             if self.volume_control is not None:
@@ -216,9 +213,8 @@ class TTSSub(Node):
             # Publish a SPEAKING message to the /face_expression topic
             self.publish_face_expression('speaking')
             self.play_audio_msg(msg)
-            # Publish a NEUTRAL message to the /face_expression topic
-            self.publish_face_expression('neutral')
         finally:
+            # Publish a NEUTRAL message to the /face_expression topic
             self.publish_face_expression('neutral')
             if msg.id == msg.sentences and msg.preset == 0:
                 # Publish a True message to the /hri_tts/finished topic
@@ -264,8 +260,8 @@ class TTSSub(Node):
                 try:
                     subprocess.run(['amixer', '-c', str(self.card_number), 'set', str(self.volume_control), self.volume], check=True)
                     result.successful = True
-                except:
-                    self.get_logger().error(f"Error setting volume to {self.volume}")
+                except Exception as e:
+                    self.get_logger().error(f"Error setting volume to {self.volume}: {e}")
             else:
                 self.get_logger().error(f"Parameter '{param.name}' cannot be changed at runtime.")
         return result
