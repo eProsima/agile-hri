@@ -15,6 +15,7 @@
 
 from hri_msgs.action import Stt
 from hri_msgs.msg import FaceInterface
+from hri_stt.tuning import Tuning
 from rcl_interfaces.msg import ParameterDescriptor
 
 import rclpy
@@ -23,12 +24,12 @@ from rclpy.executors import ExternalShutdownException, MultiThreadedExecutor
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
 
-from hri_stt.tuning import Tuning
-
 from faster_whisper import WhisperModel
+from math import gcd
+from scipy.signal import resample_poly
 import numpy as np
-import os
 import pyaudio
+import tempfile
 import threading
 import time
 import torch
@@ -401,6 +402,31 @@ class NodeSTT(Node):
             time.sleep(0.1)  # Small delay to avoid busy-waiting
         self.get_logger().debug("Finished processing audio.")
 
+    def _ensure_mono_int16(self, pcm_int16: np.ndarray) -> np.ndarray:
+        """Mixes using mean algorithm interleaved PCM int16 into mono."""
+        if self.channels > 1:
+            pcm_int16 = pcm_int16.reshape(-1, self.channels).mean(axis=1).astype(np.int16)
+        return pcm_int16
+
+    def _resample_rate(self, x_f32: np.ndarray) -> np.ndarray:
+        """
+        Resample float32 audio to target rate if needed. Silero VAD works with 8000 or 16000 rate audio.
+
+        :param x_f32: Input audio in float32 numpy array.
+        :return: Resampled audio in float32 numpy array.
+        """
+        if self.rate in (16000, 8000):
+            return x_f32
+        elif self.rate > 16000:
+            out_rate = 16000
+        elif self.rate < 16000:
+            out_rate = 8000
+
+        g = gcd(self.rate, 16000)
+        up = out_rate // g
+        down = self.rate // g
+        return resample_poly(x_f32, up=up, down=down).astype(np.float32, copy=False)
+
     def audio_thread_func(self, goal_handle, vad):
         """ Audio recording thread. Checks for voice activity and records audio chunks. """
         try:
@@ -429,10 +455,11 @@ class NodeSTT(Node):
                 self.chunks_recorded += 1
 
                 # Convert the audio chunk to a numpy array
-                audio_np = np.frombuffer(audio_chunk, dtype=np.int16)[0::self.channels]
+                audio_i16 = np.frombuffer(audio_chunk, dtype=np.int16)
+                audio_i16 = self._ensure_mono_int16(audio_i16)
 
                 # Detect if the chunk contains voice activity
-                is_speech = self.chunk_contains_voice(audio_chunk, vad)
+                is_speech = self.chunk_contains_voice(audio_i16, vad)
 
                 if self.chunks_recorded > self.max_recording_chunks:
                     self.get_logger().info("Reached max time conversation.")
@@ -448,7 +475,7 @@ class NodeSTT(Node):
                         # Reset silent chunk counter
                         self.silent_chunks = 0
                         # Append chunk to the buffer
-                        self.audio_buffer.append(audio_np)
+                        self.audio_buffer.append(audio_i16)
                         self.get_logger().debug(f"Appending chunk to buffer {self.chunks_recorded}")
                     else:
                         # Increment silent chunk counter
@@ -463,7 +490,7 @@ class NodeSTT(Node):
                         else:
                             # Append also silent chunks to the buffer to avoid false negatives and lose audio if voice was detected
                             if len(self.audio_buffer) > 0:
-                                self.audio_buffer.append(audio_np)
+                                self.audio_buffer.append(audio_i16)
                                 self.get_logger().debug(f"Appending silent chunk to buffer {self.chunks_recorded}")
                             if self.silent_chunks == self.silence_chunk_before_sending and len(self.audio_buffer) > 0:
                                 # If we have buffered audio and detect silence, process the existing buffer
@@ -485,23 +512,39 @@ class NodeSTT(Node):
             self.get_logger().debug("Signaling segment_ready in end function.")
             self.segment_ready.set()
 
-    def chunk_contains_voice(self, audio_chunk, vad):
-        """ Check if the audio chunk contains voice activity. """
-        if self.vad_opt == 'silero':
-            speech_probs = []
-            for i in range(0, self.chunk, self.chunk):
-                chunk = audio_chunk[i: i + self.chunk]
-                audio_int16 = np.frombuffer(chunk, dtype=np.int16)
-                audio_float32 = int2float(audio_int16)
-                speech_prob = vad(torch.from_numpy(audio_float32), self.rate).item()
-                speech_probs.append(speech_prob)
+    def chunk_contains_voice(self, audio_i16: np.ndarray, vad) -> bool:
+        """
+        Check if the audio chunk contains voice activity.
 
-            audio_active = True
-            for prob in speech_probs:
-                if prob < 0.5:
-                    audio_active = False
-                    break
-            return audio_active
+        :param audio_chunk: Audio chunk in int16 numpy array. Already in mono.
+        :param vad: VAD model or object.
+        :return: True if voice activity is detected, False otherwise.
+        """
+        if self.vad_opt == 'silero':
+            audio_f32 = int2float(audio_i16)
+            audio_f32 = self._resample_rate(audio_f32)
+
+            # Use exact framing of 512 or 256 samples for Silero VAD
+            frame_len = 512 if self.rate >= 16000 else 256
+            n_frames = len(audio_f32) // frame_len
+            if n_frames == 0:
+                # There are not enough samples to process and audio chunk -> no speech
+                return False
+
+            # Reshape audio to frames and discard extra samples that do not fit in a full frame of frame_len
+            frames = audio_f32[:n_frames * frame_len].reshape(n_frames, frame_len).astype(np.float32)
+
+            self.get_logger().info(f"Silero VAD processing {n_frames} frames of length {frame_len} samples.")
+            speech_probs = []
+            for i in range(n_frames):
+                used_rate = 16000 if self.rate >= 16000 else 8000
+                with torch.no_grad():
+                    speech_prob = vad(torch.from_numpy(frames[i]), used_rate).item()
+                    speech_probs.append(speech_prob)
+
+            self.get_logger().info(f"Silero VAD speech probabilities: {speech_probs}")
+
+            return any(prob >= 0.5 for prob in speech_probs)
         elif self.vad_opt == 'mic':
             if vad.read("SPEECHDETECTED") == 1:
                 return True
