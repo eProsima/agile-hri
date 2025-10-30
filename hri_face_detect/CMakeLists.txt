@@ -84,8 +84,8 @@ if(ENABLE_AVX2)
 endif()
 
 if(ENABLE_NEON)
-  message("Using ENON")
-  set(FDT_COMPILE_DEF ${FDT_COMPILE_DEF} _ENABLE_AVX2)
+  message("Using NEON")
+  set(FDT_COMPILE_DEF ${FDT_COMPILE_DEF} _ENABLE_NEON)
 endif()
 
 if(USE_OPENMP)

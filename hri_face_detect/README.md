@@ -83,7 +83,7 @@ By using keyed topics, this package is able to provide face recognition for mult
 ## Execution
 
 ```bash
-ros2 launch hri_face_detect face_detect.launch rgb_camera_topic:=<input camera topic>
+ros2 launch hri_face_detect face_detect.launch.py rgb_camera_topic:=<input camera topic>
 ```
 
 ## Example

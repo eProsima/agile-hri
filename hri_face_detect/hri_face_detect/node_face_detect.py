@@ -73,7 +73,7 @@ FACE_DETECTION_PROC_TIME_ERROR = 2000.
 
 class NodeFaceDetect(Node):
     """
-    ROS 2 LifecyleNode managing the face detection from an image stream.
+    ROS 2 LifecycleNode managing the face detection from an image stream.
     """
     def __init__(self):
         super().__init__('hri_face_detect')
@@ -253,6 +253,7 @@ class NodeFaceDetect(Node):
             self.k[2][0:3] = self.cam_info_msg.k[6:9]
 
         self.destroy_subscription(self.image_info_sub)
+        self.image_info_sub = None
 
     def image_callback(self, msg: ImageCamera):
         """

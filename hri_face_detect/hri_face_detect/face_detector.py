@@ -270,7 +270,6 @@ def time_match(t1, t2, proc_time, offset) -> bool:
     return (t1 - t2).nanoseconds - offset.nanoseconds < (MAX_TIME_BETWEEN_FRAMES * 1e9 + proc_time * 1e6)
 
 
-
 class Face:
     """
     Class representing a face detected by the FacePoseDetector.
@@ -350,10 +349,10 @@ class Face:
         self.id = new_id
         self.temp_id = False
 
-    def set_publish(self, bool):
+    def set_publish(self, should_publish: bool):
         """Set the flag to publish the face only if it is not a temp face."""
         if not self.temp_id:
-            self.do_publish = bool
+            self.do_publish = should_publish
 
     def ref_face_point(self):
         """Return the reference face point for this face: Center of the bounding box."""

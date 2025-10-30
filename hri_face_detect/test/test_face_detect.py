@@ -74,9 +74,11 @@ class TestNodeFaceDetect(unittest.TestCase):
 
         # faces_pub publisher must exist
         self.assertTrue(hasattr(self.node, 'faces_pub'))
+        self.assertIsNotNone(getattr(self.node, 'faces_pub', None))
 
-        # Should NOT have mesh_pub
-        self.assertFalse(hasattr(self.node, 'mesh_pub'))
+        # Should NOT have mesh_pub instantiated
+        self.assertTrue(hasattr(self.node, 'mesh_pub'))
+        self.assertIsNone(getattr(self.node, 'mesh_pub', None))
 
     def test_on_configure_with_mesh(self):
         """Test on_configure with face_mesh=True creates MeshDetector and mesh_pub."""
@@ -96,9 +98,11 @@ class TestNodeFaceDetect(unittest.TestCase):
 
         # mesh_pub publisher must exist
         self.assertTrue(hasattr(self.node, 'mesh_pub'))
+        self.assertIsNotNone(getattr(self.node, 'mesh_pub', None))
 
         # faces_pub still exists
         self.assertTrue(hasattr(self.node, 'faces_pub'))
+        self.assertIsNotNone(getattr(self.node, 'faces_pub', None))
 
 
 if __name__ == '__main__':

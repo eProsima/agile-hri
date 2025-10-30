@@ -2,7 +2,7 @@
 <package format="2">
   <name>hri_face_detect</name>
   <version>1.0.0</version>
-  <description>Face detection for ROS4HRI</description>
+  <description>Vulcanexus HRI Face Detection package</description>
   <author email="carlosferreira@eprosima.com">Carlos Ferreira</author>
   <maintainer email="carlosferreira@eprosima.com">Carlos Ferreira</maintainer>
   <license>Apache 2.0</license>

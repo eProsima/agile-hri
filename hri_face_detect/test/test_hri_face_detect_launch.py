@@ -173,7 +173,7 @@ class TestHRIFaceDetectIntegration(unittest.TestCase):
 
         self.assertTrue(self.msg_received.is_set(), "No Face2DList received after publishing an image.")
         self.assertGreaterEqual(len(self.faces_msg.bboxes), 1,
-            "Face2DList received but contains zero bounding boxes.")  # Always contains 10
+            "Face2DList received but contains zero bounding boxes.")  # Always contains 10 faces
         # Check that the first bounding box has valid coordinates
         self.assertGreater(self.faces_msg.bboxes[0].xmin, 0)
         self.assertGreater(self.faces_msg.bboxes[0].ymin, 0)
@@ -181,7 +181,7 @@ class TestHRIFaceDetectIntegration(unittest.TestCase):
         self.assertGreater(self.faces_msg.bboxes[0].ymax, 0)
         # Check that the first Face2D has landmarks and valid coordinates
         self.assertGreaterEqual(len(self.faces_msg.landmarks), 1,
-            "Face2DList received but contains zero bounding boxes.")   # Always contains 10
+            "Face2DList received but contains zero landmarks.")   # Always contains 10 faces
         for landmark in self.faces_msg.landmarks[0].landmarks:
             self.assertGreater(landmark.x, 0)
             self.assertGreater(landmark.y, 0)
@@ -221,7 +221,7 @@ class TestHRIFaceDetectIntegration(unittest.TestCase):
 
         self.assertTrue(self.msg_received.is_set(), "No Face2DList received after publishing an image.")
         self.assertGreaterEqual(len(self.faces_msg.bboxes), 1,
-            "Face2DList received but contains zero bounding boxes.")  # Always contains 10
+            "Face2DList received but contains zero bounding boxes.")  # Always contains 10 faces
         # Check that the first bounding box has valid coordinates
         for i in range(3):
             self.assertGreater(self.faces_msg.bboxes[i].xmin, 0)
@@ -230,7 +230,7 @@ class TestHRIFaceDetectIntegration(unittest.TestCase):
             self.assertGreater(self.faces_msg.bboxes[i].ymax, 0)
         # Check that the first Face2D has landmarks and valid coordinates
         self.assertGreaterEqual(len(self.faces_msg.landmarks), 1,
-            "Face2DList received but contains zero bounding boxes.")   # Always contains 10
+            "Face2DList received but contains zero landmarks.")   # Always contains 10 faces
         for i in range(3):
             self.assertGreaterEqual(len(self.faces_msg.landmarks[i].landmarks), 1,
                 f"Face2D with index {i} in Face2DList contains zero landmarks.")
@@ -272,8 +272,7 @@ class TestHRIFaceDetectIntegration(unittest.TestCase):
         if pub_thread.is_alive():
             pub_thread.join()
 
-
-        self.assertFalse(self.msg_received.is_set(), "Face2DList received after publishing emtpy image.")
+        self.assertFalse(self.msg_received.is_set(), "Face2DList received after publishing empty image.")
         self.assertEqual(self.faces_msg, None)
 
 

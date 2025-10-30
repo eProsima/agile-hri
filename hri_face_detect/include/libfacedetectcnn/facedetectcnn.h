@@ -72,9 +72,9 @@ DO NOT EDIT the following code if you don't really understand it.
 #define _MAX_UINT8_VALUE 255
 #endif
 
-#if defined(_ENABLE_AVX512) 
+#if defined(_ENABLE_AVX512)
 #define _MALLOC_ALIGN 512
-#elif defined(_ENABLE_AVX2) 
+#elif defined(_ENABLE_AVX2)
 #define _MALLOC_ALIGN 256
 #else
 #define _MALLOC_ALIGN 128
@@ -222,9 +222,9 @@ public:
                 << channels << std::endl;
             return false;
         }
-        
+
         //memset(data, 0, width * height * channelStep);
-        
+
         //the following code is faster than memset
         //but not only the padding bytes are set to zero.
         //BE CAREFUL!!!
@@ -241,7 +241,7 @@ public:
         //             pI[ch] = 0;
         //     }
         // }
-        
+
         return true;
 	}
 
@@ -272,7 +272,7 @@ public:
                 return (p[ch]);
             }
         }
-        
+
         return (T)(0);
     }
 
@@ -322,10 +322,10 @@ public:
                        }
                     }
                 }
-            } 
-            output << "..., " 
+            }
+            output << "..., "
                     << dataBlob.getElement(dataBlob.rows-1, dataBlob.cols-1, dataBlob.channels-1) << ")"
-                    << std::endl; 
+                    << std::endl;
             float max_it = -500.f;
             float min_it = 500.f;
             for(int r = 0; r < dataBlob.rows; ++r) {
@@ -335,8 +335,8 @@ public:
                         min_it = std::min(min_it, dataBlob.getElement(r, c, ch));
                     }
                 }
-            }   
-            output << "max_it: " << max_it << "    min_it: " << min_it << std::endl;        
+            }
+            output << "max_it: " << max_it << "    min_it: " << min_it << std::endl;
         }
         return output;
     }
@@ -390,7 +390,7 @@ class Filters{
         {
             this->weights.create(1, 9, channels);
         }
-        else 
+        else
         {
             std::cerr << "Unsupported filter type. Only 1x1 point-wise and 3x3 depth-wise are supported." << std::endl;
             return *this;
@@ -400,8 +400,8 @@ class Filters{
 
         //the format of convinfo.pWeights/biases must meet the format in this->weigths/biases
         for(int fidx = 0; fidx < this->weights.cols; fidx++)
-            memcpy(this->weights.ptr(0,fidx), 
-                    convinfo.pWeights + channels * fidx , 
+            memcpy(this->weights.ptr(0,fidx),
+                    convinfo.pWeights + channels * fidx ,
                     channels * sizeof(T));
         memcpy(this->biases.ptr(0,0), convinfo.pBiases, sizeof(T) * this->num_filters);
 
@@ -410,14 +410,14 @@ class Filters{
 
 };
 
-std::vector<FaceRect> objectdetect_cnn(const unsigned char* rgbImageData, int with, int height, int step);
+std::vector<FaceRect> objectdetect_cnn(const unsigned char* rgbImageData, int width, int height, int step);
 
 CDataBlob<float> setDataFrom3x3S2P1to1x1S1P0FromImage(const unsigned char* inputData, int imgWidth, int imgHeight, int imgChannels, int imgWidthStep, int padDivisor=32);
 CDataBlob<float> convolution(const CDataBlob<float>& inputData, const Filters<float>& filters, bool do_relu = true);
-CDataBlob<float> convolutionDP(const CDataBlob<float>& inputData, 
+CDataBlob<float> convolutionDP(const CDataBlob<float>& inputData,
                 const Filters<float>& filtersP, const Filters<float>& filtersD, bool do_relu = true);
-CDataBlob<float> convolution4layerUnit(const CDataBlob<float>& inputData, 
-                const Filters<float>& filtersP1, const Filters<float>& filtersD1, 
+CDataBlob<float> convolution4layerUnit(const CDataBlob<float>& inputData,
+                const Filters<float>& filtersP1, const Filters<float>& filtersD1,
                 const Filters<float>& filtersP2, const Filters<float>& filtersD2, bool do_relu = true);
 CDataBlob<float> maxpooling2x2S2(const CDataBlob<float>& inputData);
 
