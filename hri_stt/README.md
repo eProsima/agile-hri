@@ -28,7 +28,7 @@ export LD_LIBRARY_PATH=`python3 -c 'import os; import nvidia.cublas.lib; import 
   This parameter is mandatory.
 
 - `vad` (string, default: "silero"):
-  VAD selection. Wheter to use the integrated VAD of the microphone or load an external one.
+  VAD selection. Whether to use the integrated VAD of the microphone or load an external one.
   Options: silero, mic.
 
 - `config_file` (string, default: "noise_config.json")
@@ -37,9 +37,8 @@ export LD_LIBRARY_PATH=`python3 -c 'import os; import nvidia.cublas.lib; import 
 - `whisper_model` (string, default: "medium.en"):
   Whisper model selection.
 
-- `gpu_load` (string, default: "persist"):
-  If the models should persist in the GPU when the are inactive.
-  Options: persist, expire.
+- `persist_model` (bool, default: True):
+  Whether the models should persist in the GPU when they are inactive or not.
 
 - `max_audio_recording` (int, default: 30):
   Max audio recording duration in seconds.

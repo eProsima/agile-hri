@@ -108,8 +108,8 @@ class NodeSTT(Node):
             'whisper_model', 'medium.en', ParameterDescriptor(
                 description='Whisper model selection.'))
         self.declare_parameter(
-            'gpu_load', 'persist', ParameterDescriptor(
-                description='If the models should persist in the GPU when they are inactive. Options: persist, expire'))
+            'persist_model', True, ParameterDescriptor(
+                description='Whether the models should persist in the GPU when they are inactive or not.'))
         self.declare_parameter(
             'max_audio_recording', 30, ParameterDescriptor(
                 description='Max audio recording duration in seconds.'))
@@ -125,13 +125,13 @@ class NodeSTT(Node):
         if not self.microphone:
             self.get_logger().error("Microphone parameter is empty. Please set the microphone parameter to the microphone name.")
             raise ValueError("Microphone parameter is empty. Please set the microphone parameter to the microphone name. ($ros2 run hri_stt list_microphones)")
-        if 'persist' == self.get_parameter('gpu_load').value:
+        if self.get_parameter('persist_model').value:
             self.unload = False
             try:
                 self.model = WhisperModel(self.whisper_model, device="cuda", compute_type="float16")
                 self.get_logger().info(f"Whisper '{self.whisper_model}' loaded correctly.")
             except Exception as e:
-                self.get_logger().error(f'Fatal Error loading Whisper model during initialization: {str(e)}. Setting expire gpu_load mode.')
+                self.get_logger().error(f'Fatal Error loading Whisper model during initialization: {str(e)}. Setting expire model mode.')
                 self.unload = True
                 self.model = None
         else:
@@ -151,16 +151,16 @@ class NodeSTT(Node):
             self.index = get_mic_index(self.microphone)
 
         mic_cfg = get_cfg_mic(self.index)
-        if mic_cfg is None:
+        if mic_cfg[0] is None or mic_cfg[1] is None:
             self.get_logger().error("PyAudio could not obtain microphone configuration.")
             raise ValueError("PyAudio could not obtain microphone configuration.")
 
         self.channels, self.rate = mic_cfg
-        # Silero vad model works with 8000 rate audio, so we need to align the chunk size to be multiple of 8000
+        # Silero vad model works with 8000 and 16000 rate audio, so we need to align the chunk size to be multiple of 8000
         if self.vad_opt == 'silero' and self.rate % 8000 != 0:
             align = max(1, int(round(self.rate / 8000)))
             self.rate = align * 8000
-            self.get_logger().info(f"Silero VAD works with 8000 multiples rate audio. Microphone {self.microphone} rate aligned to {self.rate}.")
+            self.get_logger().info(f"Silero VAD works with 8000 and 16000 multiples rate audio. Microphone {self.microphone} rate aligned to {self.rate}.")
         self.chunk = get_chunk_mic(self.rate, target_ms=64.0, align=256)
         self.get_logger().info(f'Microphone configuration for {self.microphone} found: {self.channels} channels, {self.rate} rate, {self.chunk} chunk size.')
 
@@ -378,14 +378,14 @@ class NodeSTT(Node):
                 start = time.time()
 
                 # Save the audio to a temporary file to process it and remove it afterwards
-                temp_file = f'/tmp/temp_whisper{len(audio_data)}.wav'
-                self.save_audio_to_wav(temp_file, audio_data, self.channels, self.rate)
-                segments, info = model.transcribe(temp_file, beam_size=5, language="en", condition_on_previous_text=False)
-                os.remove(temp_file)
+                with tempfile.NamedTemporaryFile(delete=True, suffix=f'.wav') as temp_file:
+                    self.save_audio_to_wav(temp_file.name, audio_data, 1, self.rate)
+                    # Store audio in .wav file with single channel
+                    segments, info = model.transcribe(temp_file.name, beam_size=5, language="en", condition_on_previous_text=False)
 
                 try:
                     for segment in segments:
-                        self.get_logger().info(f"Transcription took {time.time() - start:.3f} seconds. Parcial text: {segment.text}")
+                        self.get_logger().info(f"Transcription took {time.time() - start:.3f} seconds. Partial text: {segment.text}")
                         feedback_msg = Stt.Feedback()
                         feedback_msg.recording = True
                         feedback_msg.partial_speech = segment.text

@@ -80,7 +80,7 @@ PARAMETERS_WRITE = [
         'GAMMA_NN',
         'GAMMA_NS_SR',
         'GAMMA_NS',
-        'GAMMAVAD_SR'
+        'GAMMAVAD_SR',
         'HPFONOFF',
         'MIN_NN_SR',
         'MIN_NN',

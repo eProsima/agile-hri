@@ -17,8 +17,7 @@ Small utility to pre-download Whisper and VAD models.
 Usage examples:
   python download_models.py
   python download_models.py -m small
-  python download_models.py -m large-v3 --device cuda --compute-type float16
-  python download_models.py --wav ../config/0.wav
+  python download_models.py -m large-v3 --device cuda
 """
 
 import argparse
@@ -37,14 +36,14 @@ def parse_args():
         help="Whisper model id (e.g. tiny, base, small, medium, medium.en, large-v3). Default: medium.en"
     )
     parser.add_argument(
-        "--device",
+        "-d", "--device",
         choices=["auto", "cuda", "cpu"],
         default="auto",
         help="Compute device. 'auto' selects cuda if available, else cpu. Default: 'auto'"
     )
     parser.add_argument(
-        "--test",
-        default=False,
+        "-t", "--test",
+        action="store_true",
         help="Optionally test the whisper model with a short transcription."
     )
     return parser.parse_args()

@@ -52,14 +52,10 @@ def generate_launch_description():
         default_value=['medium.en'],
         description='Whisper model selection.',
     )
-    gpu_load_arg = DeclareLaunchArgument(
-        'gpu_load',
-        default_value='persist',
-        description='If the models should persist in the GPU when they are inactive.',
-        choices=[
-            "persist",  # Persist in the GPU
-            "expire",   # Expire from the GPU. This will require reloading the model
-        ],
+    persist_model_arg = DeclareLaunchArgument(
+        'persist_model',
+        default_value=['true'],
+        description='Whether the models should persist in the GPU when they are inactive or not.',
     )
     max_audio_recording_arg = DeclareLaunchArgument(
         'max_audio_recording',
@@ -86,7 +82,7 @@ def generate_launch_description():
                      'vad': LaunchConfiguration('vad'),
                      'whisper_model': LaunchConfiguration('whisper_model'),
                      'microphone': LaunchConfiguration('microphone'),
-                     'gpu_load': LaunchConfiguration('gpu_load'),
+                     'persist_model': LaunchConfiguration('persist_model'),
                      'max_audio_recording': LaunchConfiguration('max_audio_recording'),
                      'publish_face_expression': LaunchConfiguration('publish_face_expression')}],
         arguments=['--ros-args', '--log-level', ['hri_stt:=', log_level]],
@@ -98,7 +94,7 @@ def generate_launch_description():
         vad_arg,
         whisper_arg,
         microphone_arg,
-        gpu_load_arg,
+        persist_model_arg,
         max_audio_recording_arg,
         pub_face_exp_arg,
         log_level_arg,
