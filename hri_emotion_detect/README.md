@@ -1,6 +1,6 @@
 # Vulcanexus HRI Emotion Detect
 
-The `hri_emotions_detect`package performs emotions detection using the [OpenCV Zoo Facial Expression Recognition model](https://github.com/opencv/opencv_zoo/tree/main/models/facial_expression_recognition).
+The `hri_emotion_detect` package performs emotions detection using the [OpenCV Zoo Facial Expression Recognition model](https://github.com/opencv/opencv_zoo/tree/main/models/facial_expression_recognition).
 
 It requires to run Vulcanexus HRI Face Detect Node along this node in order to perform emotion recognition.
 
@@ -8,7 +8,7 @@ It requires to run Vulcanexus HRI Face Detect Node along this node in order to p
 
 ### Parameters
 
-- `model_expresion_detection`(string, default: '<path_to_share_directory>/models/facial_expression_recognition_mobilefacenet_2022july.onnx')
+- `model_expression_detection`(string, default: '<path_to_share_directory>/models/facial_expression_recognition_mobilefacenet_2022july.onnx')
   Path to the facial expression recognition model.
 
 - `backend_id`(string, default: `cv.dnn.DNN_BACKEND_OPENCV`):
@@ -34,9 +34,9 @@ This package includes an additional launch file that re-uses `hri_face_detect` l
 
 This package optimizes the [ROS REP-155](https://ros.org/reps/rep-0155.html) by introducing [keys](https://docs.ros.org/en/rolling/Tutorials/Advanced/Topic-Keys/Topic-Keys-Tutorial.html), compatible with [Fast DDS](https://github.com/eProsima/Fast-DDS).
 
-By using keyed topics, this package is able to provide pose recognition for multiple targets by just publishing in one topic:
+By using keyed topics, this package is able to provide emotion recognition for multiple targets by just publishing in one topic:
 
-- humans/bodies
+- /humans/faces/emotion
 
 #### Subscribed
 

@@ -138,7 +138,7 @@ class FaceAlignment():
         trans1, trans1_inv = self.__findNonreflectiveSimilarity(uv, xy, options)
 
         # Manually reflect the xy data across the Y-axis
-        xyR = xy
+        xyR = xy.copy()
         xyR[:, 0] = -1 * xyR[:, 0]
         # Solve for trans2
         trans2r, trans2r_inv = self.__findNonreflectiveSimilarity(uv, xyR, options)

@@ -40,8 +40,8 @@ def generate_launch_description():
         'rgb_camera_topic', default_value=[LaunchConfiguration('rgb_camera'), '/image_raw'],
         description='The input camera image topic'
     )
-    declare_model_expresion_detection = DeclareLaunchArgument(
-        "model_expresion_detection",
+    declare_model_expression_detection = DeclareLaunchArgument(
+        "model_expression_detection",
         default_value=os.path.join(hri_emotions_dir, "models", "facial_expression_recognition_mobilefacenet_2022july.onnx"),
         description="Path to the face detection model"
     )
@@ -73,7 +73,7 @@ def generate_launch_description():
         executable="node_emotion_detect",
         name="node_emotion_detect",
         parameters=[
-            {"model_expresion_detection": LaunchConfiguration("model_expresion_detection")},
+            {"model_expression_detection": LaunchConfiguration("model_expression_detection")},
             {"backend_id": LaunchConfiguration("backend_id")},
             {"target_id": LaunchConfiguration("target_id")}
         ],
@@ -86,7 +86,7 @@ def generate_launch_description():
     return LaunchDescription([
         rgb_camera_arg,
         rgb_camera_topic_arg,
-        declare_model_expresion_detection,
+        declare_model_expression_detection,
         declare_backend_id,
         declare_target_id,
         log_level_arg,

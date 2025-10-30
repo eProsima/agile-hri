@@ -3,9 +3,7 @@
 <package format="3">
   <name>hri_emotion_detect</name>
   <version>1.0.0</version>
-  <description>
-      Google Mediapipe-based emotions detection for ROS4HRI
-  </description>
+  <description>Vulcanexus HRI Emotion Detection package</description>
   <author email="carlosferreira@eprosima.com">Carlos Ferreira</author>
   <maintainer email="carlosferreira@eprosima.com">Carlos Ferreira</maintainer>
   <license file="LICENSE">Apache License 2.0</license>
@@ -14,10 +12,12 @@
 
   <depend>geometry_msgs</depend>
   <depend>hri_msgs</depend>
-  <depend>rclcpp</depend>
+  <depend>rclpy</depend>
   <depend>std_msgs</depend>
   <depend>std_srvs</depend>
   <depend>tf2_ros</depend>
+
+  <exec_depend>hri_face_detect</exec_depend>
 
   <test_depend>ament_copyright</test_depend>
   <test_depend>ament_flake8</test_depend>

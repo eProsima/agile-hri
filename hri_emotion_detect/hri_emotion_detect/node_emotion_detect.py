@@ -62,7 +62,7 @@ class NodeEmotionDetect(Node):
 
         # Declare parameters
         self.declare_parameter(
-            'model_expresion_detection',
+            'model_expression_detection',
             os.path.join(hri_emotions_dir, 'models', 'facial_expression_recognition_mobilefacenet_2022july.onnx'),
             ParameterDescriptor(description='Path to the facial expression recognition model'))
 
@@ -75,7 +75,6 @@ class NodeEmotionDetect(Node):
 
         # Initialize variables
         self.persons_ = {}
-        self.ids_ = []
         self.image = None
         self.width = 0
         self.height = 0
@@ -91,7 +90,7 @@ class NodeEmotionDetect(Node):
         self.face_sub_ = self.create_subscription(Face2DList, '/humans/faces', self.faces_callback, 1)
 
         # Load facial expression recognition model
-        self.fer_model_ = FacialExpressionRecog(modelPath=self.get_parameter('model_expresion_detection').value,
+        self.fer_model_ = FacialExpressionRecog(modelPath=self.get_parameter('model_expression_detection').value,
                                                 backendId=self.get_parameter('backend_id').value,
                                                 targetId=self.get_parameter('target_id').value)
 
@@ -157,7 +156,6 @@ class NodeEmotionDetect(Node):
         # output[y_offset:(y_offset+scaled_h), x_offset:(x_offset + scaled_w)] = scaled
         ########
 
-        fer_res = np.zeros(0, dtype=np.int8)
         facial_landmarks = []
         for point in face.landmarks:
             x_norm, y_norm = normalized_to_pixel_coordinates(point.x,
@@ -171,23 +169,14 @@ class NodeEmotionDetect(Node):
 
         facial_landmarks = np.array(facial_landmarks)
 
-        ####
-        # Uncomment to show locally the facial landmarks
-        # image = roi
-        # for i in range(0, 10, 2):
-        #     x, y = facial_landmarks[i], facial_landmarks[i + 1]
-        #     cv.circle(image, (int(x), int(y)), 3, (0, 255, 0), -1)
-        # cv.imshow('image', image)
-        # cv.waitKey(3)
-        ####
+        infer_res = self.fer_model_.infer(roi, facial_landmarks)
+        self.get_logger().info(f"Face id {key} FER result: {infer_res}")
 
-        fer_res = np.concatenate((fer_res, self.fer_model_.infer(roi, facial_landmarks)), axis=0)
+        # Get emotion type. Infer result is a list of one element with the label index
+        infer_type = FacialExpressionRecog.getDesc(infer_res[0])
+        self.get_logger().info(f"Face id {key} emotion: {infer_type}")
 
-        # Get emotion and face position
-        for fer_type in fer_res:
-            fer_type = FacialExpressionRecog.getDesc(fer_res[0])
-
-            self.update_emotion(key, fer_type)
+        self.update_emotion(key, infer_type)
 
         # Publish emotion for a given face if it is in the list
         if key in self.persons_:
