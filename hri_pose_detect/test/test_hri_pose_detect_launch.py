@@ -16,13 +16,15 @@
 
 # Integration tests for the hri_pose_detect node. Simulating the launch_testing framework
 
+import os
+import psutil
+import rclpy
+import re
 import signal
 import subprocess
-import time
-import os
-import unittest
 import threading
-import rclpy
+import time
+import unittest
 
 import cv2
 from cv_bridge import CvBridge
@@ -61,6 +63,8 @@ class TestHRIPoseDetectIntegration(unittest.TestCase):
     def setUpClass(cls):
         os.environ["ROS_DOMAIN_ID"] = "116"
         os.environ["ROS_AUTOMATIC_DISCOVERY_RANGE"] = "LOCALHOST"
+        abs_path = os.path.abspath(os.path.dirname(__file__))
+        os.environ["FASTDDS_DEFAULT_PROFILES_FILE"] = os.path.join(abs_path, "images/image.xml")
         rclpy.init()
         cls.bridge = CvBridge()
 
@@ -78,10 +82,10 @@ class TestHRIPoseDetectIntegration(unittest.TestCase):
                 "id_manager.launch.py",
                 "log-level:=debug"
             ],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.STDOUT,
             env=os.environ.copy(),  # Inherit + our overrides
-            preexec_fn=os.setsid
+            start_new_session=True,
         )
 
         self.proc = subprocess.Popen(
@@ -92,10 +96,10 @@ class TestHRIPoseDetectIntegration(unittest.TestCase):
                 "rgb_camera_info:=test_cam_info",
                 "log-level:=debug"
             ],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.STDOUT,
             env=os.environ.copy(),  # Inherit + our overrides
-            preexec_fn=os.setsid
+            start_new_session=True
         )
 
         time.sleep(3)  # Wait for the nodes to start
@@ -119,7 +123,29 @@ class TestHRIPoseDetectIntegration(unittest.TestCase):
                 self.msg_received.set()
         self.sub_bodies = self.node.create_subscription(Skeleton2DList, "/humans/bodies", poses_cb, 10)
 
-        time.sleep(2)  # Wait for the subscriptions to be established
+        time.sleep(3)  # Wait for the subscriptions to be established
+
+    def _terminate_pgroup(self, p):
+        """ INT → wait → TERM → wait → KILL. Every action to the whole process group. """
+        try:
+            os.killpg(p.pid, signal.SIGINT)
+        except ProcessLookupError:
+            pass
+        try:
+            p.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            try:
+                os.killpg(p.pid, signal.SIGTERM)
+            except ProcessLookupError:
+                pass
+            try:
+                p.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                try:
+                    os.killpg(p.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+                p.wait()
 
     def tearDown(self):
         print("Tearing down test client node")
@@ -129,23 +155,32 @@ class TestHRIPoseDetectIntegration(unittest.TestCase):
         self.node.destroy_node()
 
         for proc in (self.proc, self.proc_id_manager):
-            os.killpg(os.getpgid(proc.pid), signal.SIGINT)
+            self._terminate_pgroup(proc)
+
+        # Ensure no node_pose_detect processes are left
+        pattern=r'node_pose_detect'
+        procs = []
+        for p in psutil.process_iter(['pid','ppid','cmdline']):
             try:
-                ret = proc.wait(timeout=10)
-            except subprocess.TimeoutExpired:
-                os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
-                ret = proc.wait()
-            finally:
-                print(f"Process {proc.pid} terminated with return code {ret}")
+                cmd = ' '.join(p.info['cmdline'] or [])
+            except (psutil.AccessDenied, psutil.NoSuchProcess):
+                continue
+            if cmd and re.search(pattern, cmd):
+                procs.append(psutil.Process(p.info['pid']))
 
-        print("OUTPUT:")
-        stdout, stderr = self.proc.communicate()
-        if stdout:
-            print(stdout.decode('utf-8'))
-        if stderr:
-            print(stderr.decode('utf-8'))
+        for sig in (signal.SIGINT, signal.SIGTERM, signal.SIGKILL):
+            for p in procs:
+                if p.is_running():
+                    try:
+                        p.send_signal(sig)
+                    except psutil.NoSuchProcess:
+                        pass
+            gone, alive = psutil.wait_procs(procs, timeout=3)
+            if not alive:
+                break
+            procs = alive
 
-        time.sleep(2)  # Wait for processes to clean up (YOLO thread might take a while)
+        time.sleep(1)  # Wait for processes to clean up (YOLO thread might take a while)
 
     def pub_loop(self, img_msg: Image):
         print("Starting image publishing loop")
@@ -155,7 +190,6 @@ class TestHRIPoseDetectIntegration(unittest.TestCase):
         pub_times = 0
         # Publish the image for 10 seconds at 30 Hz
         while rclpy.ok() and pub_times < (10 * self.hz):
-            self.node.get_logger().info(f"Publishing image {pub_times + 1} at {self.hz} Hz")
             img_msg.header.stamp = self.node.get_clock().now().to_msg()
             self.pub_img.publish(img_msg)
             pub_times += 1
@@ -280,11 +314,11 @@ class TestHRIPoseDetectIntegration(unittest.TestCase):
         # Publish cam info once
         self.pub_info.publish(info_msg)
 
-        # Start publishing the image for 5 seconds at 30 Hz in a separate thread
+        # Start publishing the image for 10 seconds at 30 Hz in a separate thread
         pub_thread = threading.Thread(target=self.pub_loop, args=(img_msg,))
         pub_thread.start()
 
-        # Spin until messages arrives or timeout
+        # Spin until messages arrive or timeout
         timeout = time.time() + 15.0
         while rclpy.ok() and time.time() < timeout and not self.msg_received.is_set():
             rclpy.spin_once(self.node, timeout_sec=0.1)
