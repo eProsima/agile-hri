@@ -547,6 +547,35 @@ class NodePoseDetect(Node):
         self.get_logger().info(f"YOLO model state after request {response.state}.")
         return response
 
+    def shutdown_detection_process(self):
+        """Stop the detection process."""
+        try:
+            self.queue_in.put('stop')
+            time.sleep(1) # Give time to process the stop command and unload de model
+            self.queue_out.close()
+            self.queue_in.close()
+            self.queue_in.cancel_join_thread()
+            self.queue_out.cancel_join_thread()
+        except:
+            pass
+        if self.detection_process.is_alive():
+            self.detection_process.join(timeout=5)
+
+        if self.detection_process.is_alive():
+            self.get_logger().error("Detection process could not be stopped.")
+            self.detection_process.terminate()
+            self.detection_process.join()
+
+        if self.detection_process.is_alive():
+            try:
+                import signal
+                self.get_logger().error("Sending kill process.")
+                os.kill(self.detection_process.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+            self.detection_process.join(timeout=2)
+        self.detection_process = None
+
 
 def main(args=None):
     rclpy.init(args=args)
@@ -557,6 +586,7 @@ def main(args=None):
     try:
         executor.spin()
     except (KeyboardInterrupt, ExternalShutdownException):
+        node.shutdown_detection_process()
         node.destroy_node()
 
 

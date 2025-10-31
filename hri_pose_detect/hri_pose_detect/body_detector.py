@@ -524,21 +524,26 @@ class BodyDetector:
         self.node.get_logger().info("Starting YOLO running process.")
         if not self.load_model():
             return
-        while True:
-            if self.detector is None:
-                self.node.get_logger().warning("In RUN YOLO model not loaded.")
-                return []
+        try:
+            while True:
+                if self.detector is None:
+                    self.node.get_logger().warning("In RUN YOLO model not loaded.")
+                    return []
 
-            if queue_in.empty():
-                # Aprox 30 Hz
-                time.sleep(0.033)
-                continue
-            img = queue_in.get()
-            if isinstance(img, str) and img == 'stop':
-                break
+                if queue_in.empty():
+                    # Aprox 30 Hz
+                    time.sleep(0.033)
+                    continue
+                img = queue_in.get()
+                if isinstance(img, str) and img == 'stop':
+                    break
 
-            result = self._detect(img)
+                result = self._detect(img)
 
-            queue_out.put(result)
+                queue_out.put(result)
+        except KeyboardInterrupt:
+            self.node.get_logger().info("YOLO running process interrupted by user.")
+        except Exception as e:
+            self.node.get_logger().error(f'Error in YOLO running process: {str(e)}')
 
         self.unload_model()

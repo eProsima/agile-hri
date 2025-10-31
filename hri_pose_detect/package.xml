@@ -3,7 +3,7 @@
 <package format="3">
   <name>hri_pose_detect</name>
   <version>0.0.0</version>
-  <description>ROS 2 node implementing 2D pose estimation, using YOLO. Part of ROS4HRI.</description>
+  <description>Vulcanexus HRI Pose Detection package implementing 2D pose estimation, using YOLO.</description>
   <author email="carlosferreira@eprosima.com">Carlos Ferreira</author>
   <maintainer email="carlosferreira@eprosima.com">Carlos Ferreira</maintainer>
   <license>Apache License 2.0</license>
