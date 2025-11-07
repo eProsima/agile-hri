@@ -16,13 +16,41 @@
 
 // Expression.idl
 // This IDL defines a Facial expression or emotion. It contains:
-//   - Key annotation serving as unique identifier of the Expression. Supported only by rmw_fastrtps and Fast DDS
+//   - ROS 2 keys supported by rmw_fastrtps and Fast DDS
 //   - Header for meta data
 //   - Expression defined as a string to increase flexibility
 //   - Confidence of the model inference
 
 module hri_msgs {
     module msg {
+        module Expression_Constants {
+            const string NEUTRAL = "neutral";
+            const string ANGRY = "angry";
+            const string SAD = "sad";
+            const string HAPPY = "happy";
+            const string SURPRISED = "surprised";
+            const string DISGUSTED = "disgusted";
+            const string SCARED = "scared";
+            const string PLEADING = "pleading";
+            const string VULNERABLE = "vulnerable";
+            const string DESPAIRED = "despaired";
+            const string GUILTY = "guilty";
+            const string DISAPPOINTED = "disappointed";
+            const string EMBARRASSED = "embarrassed";
+            const string HORRIFIED = "horrified";
+            const string SKEPTICAL = "skeptical";
+            const string ANNOYED = "annoyed";
+            const string FURIOUS = "furious";
+            const string SUSPICIOUS = "suspicious";
+            const string REJECTED = "rejected";
+            const string BORED = "bored";
+            const string TIRED = "tired";
+            const string ASLEEP = "asleep";
+            const string CONFUSED = "confused";
+            const string AMAZED = "amazed";
+            const string EXCITED = "excited";
+        };
+
         struct Expression {
             @key string key;
 
