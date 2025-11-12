@@ -29,11 +29,13 @@
 #ifndef HRI__TYPES_HPP_
 #define HRI__TYPES_HPP_
 
+#include <array>
 #include <string>
 #include <map>
 #include <type_traits>
 #include <variant>
 
+#include "hri_msgs/msg/face2_d.hpp"
 #include "hri_msgs/msg/facial_landmarks.hpp"
 #include "hri_msgs/msg/normalized_point_of_interest2_d.hpp"
 #include "hri_msgs/msg/normalized_region_of_interest2_d.hpp"
@@ -162,6 +164,11 @@ static constexpr std::array<FacialLandmark, 5> face_to_facial_landmarks = {
     FacialLandmark::kMouthOuterRight,// RIGHT_MOUTH = 3
     FacialLandmark::kMouthOuterLeft  // LEFT_MOUTH  = 4
 };
+
+// Static assert to ensure that the size of face_to_facial_landmarks matches the number of landmarks in Face2D
+using LandmarksArrayHRIMsg = decltype(hri_msgs::msg::Face2D{}.landmarks);
+static_assert(std::tuple_size_v<LandmarksArrayHRIMsg> == face_to_facial_landmarks.size(),
+              "Face2D.landmarks size must match face_to_facial_landmarks");
 
 enum class FeatureType
 {

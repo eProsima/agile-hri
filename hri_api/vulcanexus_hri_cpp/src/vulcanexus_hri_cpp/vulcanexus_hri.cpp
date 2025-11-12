@@ -29,6 +29,7 @@
 #include "vulcanexus_hri_cpp/vulcanexus_hri.hpp"
 
 #include <rclcpp/executors/single_threaded_executor.hpp>
+#include <set>
 
 namespace hri {
 

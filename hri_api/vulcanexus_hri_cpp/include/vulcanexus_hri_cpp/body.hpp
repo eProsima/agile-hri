@@ -78,7 +78,7 @@ public:
     {
         RCLCPP_WARN_STREAM_ONCE(logger_,
             "Cropped body image is not sent to reduce network congestion. It can be built using RoI and the original image.");
-        return cv::Mat();
+        return std::nullopt;
     }
 
     /**
@@ -132,7 +132,7 @@ public:
     std::optional<std::string> bodyDescription() const
     {
         RCLCPP_WARN_STREAM_ONCE(logger_, "Vulcanexus HRI does not use URDF descriptions.");
-        return "";
+        return std::nullopt;
     }
 
 private:

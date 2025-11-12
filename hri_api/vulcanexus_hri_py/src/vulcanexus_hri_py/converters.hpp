@@ -299,7 +299,7 @@ public:
     value.x = (py_handle.attr("x")).cast<double>();
     value.y = (py_handle.attr("y")).cast<double>();
     value.z = (py_handle.attr("z")).cast<double>();
-    value.z = (py_handle.attr("w")).cast<double>();
+    value.w = (py_handle.attr("w")).cast<double>();
     return true;
   }
 
@@ -351,13 +351,14 @@ public:
 
   bool load(handle py_handle, bool)
   {
-    if (!vulcanexus_hri_py::has_all_attribute_fields(py_handle, {"x", "y", "width", "height"})) {
+    if (!vulcanexus_hri_py::has_all_attribute_fields(py_handle, {"header", "child_frame_id", "transform"}))
+    {
       return false;
     }
 
     value.header = (py_handle.attr("header")).cast<std_msgs::msg::Header>();
     value.child_frame_id = (py_handle.attr("child_frame_id")).cast<std::string>();
-    value.transform = (py_handle.attr("header")).cast<geometry_msgs::msg::Transform>();
+    value.transform = (py_handle.attr("transform")).cast<geometry_msgs::msg::Transform>();
     return true;
   }
 

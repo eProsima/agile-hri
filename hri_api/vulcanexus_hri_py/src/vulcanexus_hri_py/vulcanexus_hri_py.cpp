@@ -673,7 +673,7 @@ PYBIND11_MODULE(hri, m)
   hri_listener.def_property_readonly(
     "tracked_persons", &hri::HRIListener::getTrackedPersons,
     "Currently tracked persons (Dict[str, Person])");
-  hri_listener.def_property_readonly(
+  hri_listener.def(
     "speech", &hri::HRIListener::getSpeech,
     "Request to process speech from HRI STT module (std::string)");
   hri_listener.def(
@@ -710,7 +710,7 @@ PYBIND11_MODULE(hri, m)
     "tracked body is lost");
   hri_listener.def(
     "set_stt_timeouts", &hri::HRIListener::set_stt_timeouts,
-    py::arg("accept_tmo"), py::arg("incomplete_tmo"),
+    py::arg("accept_tmo"), py::arg("result_tmo"),
     "Sets the speech-to-text timeouts (in seconds)");
   hri_listener.def(
     "on_voice_lost", &hri::HRIListener::onVoiceLost,
