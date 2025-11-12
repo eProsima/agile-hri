@@ -325,7 +325,6 @@ class Body:
         msg.confidence = self.score
         for dict_key, landmark in self.landmarks.items():
             x, y = _normalized_to_pixel_coordinates(landmark.x, landmark.y, rgb_camera_info.width, rgb_camera_info.height)
-            # TODO Carlos: should we rectify x, y before aligning with depth?
             x_d = int(((x - rgb_model.cx())
                       * depth_model.fx()
                       / rgb_model.fx())
@@ -363,7 +362,7 @@ class Body:
             return None
 
         x, y = 0, 0
-        # TODO Carlos: this could be the average/median between all torso and head points.
+        # This could also be calculated as the average/median between all torso and head points.
         if skeleton_msg.skeleton[Skeleton2D.NECK].x != 0 and skeleton_msg.skeleton[Skeleton2D.NECK].y != 0:
             x, y = skeleton_msg.skeleton[Skeleton2D.NECK].x, skeleton_msg.skeleton[Skeleton2D.NECK].y
         elif skeleton_msg.skeleton[Skeleton2D.NOSE].x != 0 and skeleton_msg.skeleton[Skeleton2D.NOSE].y != 0:
@@ -472,10 +471,10 @@ class BodyDetector:
     @staticmethod
     def _extract_body_detections(
             boxes, kps, image_width: int, image_height: int, th: float
-            ) -> BodyDetection:
+            ) -> List[BodyDetection]:
         """Extract a BodyDetection from the raw output of the model."""
         body_detections = []
-        for box_coords, box_conf, kps in zip(boxes.xyxy, boxes.conf, kps.xyn):
+        for box_coords, box_conf, keypoints in zip(boxes.xyxy, boxes.conf, kps.xyn):
             if box_conf < th:
                 continue
             # Box coordinates are NOT normalized
@@ -484,7 +483,7 @@ class BodyDetector:
 
             # Landmarks are normalized
             landmarks: Dict[Skeleton2D, ImagePoint_norm] = dict()
-            for idx, keypoint in enumerate(kps):
+            for idx, keypoint in enumerate(keypoints):
                 kpx, kpy = [float(coord) for coord in keypoint]
                 landmarks[yolo_to_ros4hri[idx]] = ImagePoint_norm(kpx, kpy)
 

@@ -158,8 +158,7 @@ class NodePoseDetect(Node):
 
     def on_deactivate(self, state: LifecycleState) -> TransitionCallbackReturn:
         # Clean up detected bodies
-        for body in self.detected_bodies:
-            del self.detected_bodies[body]
+        self.detected_bodies.clear()
         # Clean up ROS interfaces
         self.destroy_ros_interfaces()
 
@@ -255,10 +254,9 @@ class NodePoseDetect(Node):
 
     def on_shutdown(self, state: LifecycleState) -> TransitionCallbackReturn:
         if state.id == State.PRIMARY_STATE_ACTIVE:
-            for body in self.detected_bodies.keys():
-                del self.detected_bodies[body]
+            self.detected_bodies.clear()
             self.destroy_ros_interfaces()
-        self.body_detector_detector = None
+        self.body_detector = None
         self.get_logger().info('State: Finalized.')
         return super().on_shutdown(state)
 
@@ -307,7 +305,7 @@ class NodePoseDetect(Node):
                 if self.skipped_images > 100:
                     now = self.get_clock().now()
                     skip_time = (now - self.start_skipping_ts).nanoseconds / 1e9
-                    self.get_logger().warn(
+                    self.get_logger().warning(
                         "Pose_detect's processing too slow. "
                         f'Skipped 100 new incoming images over the last {skip_time:.1f}sec')
                     self.start_skipping_ts = now
