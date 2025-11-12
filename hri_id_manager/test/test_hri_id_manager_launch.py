@@ -195,7 +195,7 @@ class TestHRIIDManagerIntegration(unittest.TestCase):
         self.assertTrue(isinstance(resp2.id, str) and len(resp2.id) > 0)
         self.assertNotEqual(resp.id, resp2.id)
 
-        # Now send a "face" matching both ROIs but closes to second body:
+        # Now send a "face" matching both ROIs but closest to second body:
         req2 = PersonID.Request()
         req2.type = PersonID.Request.FACE
         req2.xmin = 0.3; req2.ymin = 0.25; req2.xmax = 0.4; req2.ymax = 0.35

@@ -69,6 +69,7 @@ class TestIDManager(unittest.TestCase):
         face = [0.0, 0.0, 0.5, 0.5]   # Area = 0.25
         body = [0.25, 0.25, 0.75, 0.75]  # Intersection area = 0.25 * (1/4) = 0.0625
         ov = self.node.calculate_overlapping(face, body)
+        # Expected overlap = intersection area / face area = 0.0625 / 0.25
         expected = (0.25 * 0.25) / 0.25
         self.assertEqual(ov, expected)
 

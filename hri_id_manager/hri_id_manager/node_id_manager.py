@@ -235,11 +235,12 @@ class IDManager(Node):
         yB = min(face_roi[3], body_roi[3])
 
         # Compute the area of intersection rectangle
+        boxAArea = (face_roi[2] - face_roi[0]) * (face_roi[3] - face_roi[1])
+        if boxAArea <= 0:
+            self.get_logger().warn(f"Face ROI area is zero or negative ({boxAArea}); returning 0 overlap. face_roi={face_roi}")
+            return 0.0
         interArea = max(0, xB - xA) * max(0, yB - yA)
 
-        boxAArea = (face_roi[2] - face_roi[0]) * (face_roi[3] - face_roi[1])
-
-        self.get_logger().debug(f"Overlap calculated: {interArea}/{boxAArea}={interArea/boxAArea}.")
         return interArea / boxAArea
 
     def bodies_callback(self, msg: Skeleton2DList):
