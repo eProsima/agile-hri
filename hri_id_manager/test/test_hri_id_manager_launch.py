@@ -32,11 +32,6 @@ class TestHRIIDManagerIntegration(unittest.TestCase):
     def setUpClass(cls):
         os.environ["ROS_DOMAIN_ID"] = "116"
         os.environ["ROS_AUTOMATIC_DISCOVERY_RANGE"] = "LOCALHOST"
-        rclpy.init()
-
-    @classmethod
-    def tearDownClass(cls):
-        rclpy.shutdown()
 
     def setUp(self):
         self.proc = subprocess.Popen(
@@ -44,22 +39,44 @@ class TestHRIIDManagerIntegration(unittest.TestCase):
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             env=os.environ.copy(),        # Inherit + our overrides
+            start_new_session=True
         )
 
         time.sleep(3)  # Wait for the node to start
 
+        print(f"Initializing rclpy client node")
+        rclpy.init()
         print("Setting up test client node")
         self.node = rclpy.create_node('test_client')
+
+    def _terminate_pgroup(self, p):
+        """ INT → wait → TERM → wait → KILL. Every action to the whole process group. """
+        try:
+            os.killpg(p.pid, signal.SIGINT)
+        except ProcessLookupError:
+            pass
+        try:
+            p.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            try:
+                os.killpg(p.pid, signal.SIGTERM)
+            except ProcessLookupError:
+                pass
+            try:
+                p.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                try:
+                    os.killpg(p.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+                p.wait()
 
     def tearDown(self):
         print("Tearing down test client node")
         self.node.destroy_node()
+        rclpy.shutdown()
 
-        self.proc.send_signal(signal.SIGINT)
-        try:
-            self.proc.wait(timeout=5)
-        except subprocess.TimeoutExpired:
-            self.proc.kill()
+        self._terminate_pgroup(self.proc)
         print("OUTPUT:")
         stdout, stderr = self.proc.communicate()
         if stdout:
@@ -69,8 +86,15 @@ class TestHRIIDManagerIntegration(unittest.TestCase):
 
     def _call_person_id(self, client, req):
         """Helper function to call the PersonID service."""
+        print(f"Calling service {client.srv_name} with request: {req}")
         future = client.call_async(req)
-        rclpy.spin_until_future_complete(self.node, future, timeout_sec=2.0)
+        rclpy.spin_until_future_complete(self.node, future, timeout_sec=5.0)
+        if not future.done():
+            self.fail(f"Timeout calling {client.srv_name}")
+        result = future.result()
+        if result is None:
+            self.fail(f"Service {client.srv_name} returned None (exception: {future.exception()})")
+
         return future.result()
 
     def test_service_id_assignment_face(self):
@@ -86,7 +110,7 @@ class TestHRIIDManagerIntegration(unittest.TestCase):
 
         # Prepare a "body" request
         req = PersonID.Request()
-        req.type = 'body'
+        req.type = PersonID.Request.BODY
         req.xmin = 0.1; req.ymin = 0.1; req.xmax = 0.4; req.ymax = 0.4
         req.xref = 0.25; req.yref = 0.25
         resp = self._call_person_id(client, req)
@@ -95,7 +119,7 @@ class TestHRIIDManagerIntegration(unittest.TestCase):
 
         # Now send a "face" matching the same ROI:
         req2 = PersonID.Request()
-        req2.type = 'face'
+        req2.type = PersonID.Request.FACE
         req2.xmin = 0.2; req2.ymin = 0.2; req2.xmax = 0.3; req2.ymax = 0.3
         req2.xref = 0.25; req2.yref = 0.25
         resp2 = self._call_person_id(client, req2)
@@ -122,7 +146,7 @@ class TestHRIIDManagerIntegration(unittest.TestCase):
 
         # Prepare a "face" request
         req = PersonID.Request()
-        req.type = 'face'
+        req.type = PersonID.Request.FACE
         req.xmin = 0.2; req.ymin = 0.2; req.xmax = 0.3; req.ymax = 0.3
         req.xref = 0.25; req.yref = 0.25
         resp = self._call_person_id(client, req)
@@ -131,7 +155,7 @@ class TestHRIIDManagerIntegration(unittest.TestCase):
 
         # Now send a "body" matching the same ROI:
         req2 = PersonID.Request()
-        req2.type = 'body'
+        req2.type = PersonID.Request.BODY
         req2.xmin = 0.1; req2.ymin = 0.1; req2.xmax = 0.4; req2.ymax = 0.4
         req2.xref = 0.25; req2.yref = 0.25
         resp2 = self._call_person_id(client, req2)
@@ -158,7 +182,7 @@ class TestHRIIDManagerIntegration(unittest.TestCase):
 
         # Prepare a "body" request
         req = PersonID.Request()
-        req.type = 'body'
+        req.type = PersonID.Request.BODY
         req.xmin = 0.1; req.ymin = 0.1; req.xmax = 0.4; req.ymax = 0.4
         req.xref = 0.25; req.yref = 0.3
         resp = self._call_person_id(client, req)
@@ -173,7 +197,7 @@ class TestHRIIDManagerIntegration(unittest.TestCase):
 
         # Now send a "face" matching both ROIs but closes to second body:
         req2 = PersonID.Request()
-        req2.type = 'face'
+        req2.type = PersonID.Request.FACE
         req2.xmin = 0.3; req2.ymin = 0.25; req2.xmax = 0.4; req2.ymax = 0.35
         req2.xref = 0.35; req2.yref = 0.3
         resp3 = self._call_person_id(client, req2)
@@ -193,7 +217,7 @@ class TestHRIIDManagerIntegration(unittest.TestCase):
 
         # Initial face request
         req = PersonID.Request()
-        req.type = 'face'
+        req.type = PersonID.Request.FACE
         req.xmin = 0.2; req.ymin = 0.2; req.xmax = 0.3; req.ymax = 0.3
         req.xref = 0.25; req.yref = 0.25
         resp = self._call_person_id(client, req)
@@ -203,7 +227,7 @@ class TestHRIIDManagerIntegration(unittest.TestCase):
         # Now send a body request where the the new face position will be
         # This should return a new ID because the face has not moved yet
         req2 = PersonID.Request()
-        req2.type = 'body'
+        req2.type = PersonID.Request.BODY
         req2.xmin = 0.35; req2.ymin = 0.35; req2.xmax = 0.55; req2.ymax = 0.55
         req2.xref = 0.45; req2.yref = 0.45
         resp2 = self._call_person_id(client, req2)
@@ -242,7 +266,7 @@ class TestHRIIDManagerIntegration(unittest.TestCase):
         self.assertNotEqual(resp2.id, resp3.id)
 
         # Clean up publisher
-        face_pub.destroy()
+        self.node.destroy_publisher(face_pub)
 
     def test_body_movement_and_face_id_matching(self):
         """
@@ -255,7 +279,7 @@ class TestHRIIDManagerIntegration(unittest.TestCase):
 
         # Initial body request
         req = PersonID.Request()
-        req.type = 'body'
+        req.type = PersonID.Request.BODY
         req.xmin = 0.1; req.ymin = 0.2; req.xmax = 0.3; req.ymax = 0.5
         req.xref = 0.25; req.yref = 0.25
         resp = self._call_person_id(client, req)
@@ -265,7 +289,7 @@ class TestHRIIDManagerIntegration(unittest.TestCase):
         # Now send a face request where the the new body position will be
         # This should return a new ID because the body has not moved yet
         req2 = PersonID.Request()
-        req2.type = 'face'
+        req2.type = PersonID.Request.FACE
         req2.xmin = 0.45; req2.ymin = 0.2; req2.xmax = 0.55; req2.ymax = 0.3
         req2.xref = 0.5; req2.yref = 0.25
         resp2 = self._call_person_id(client, req2)
@@ -304,7 +328,7 @@ class TestHRIIDManagerIntegration(unittest.TestCase):
         self.assertNotEqual(resp2.id, resp3.id)
 
         # Clean up publisher
-        body_pub.destroy()
+        self.node.destroy_publisher(body_pub)
 
 
 if __name__ == '__main__':

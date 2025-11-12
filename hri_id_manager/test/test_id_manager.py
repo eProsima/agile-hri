@@ -98,5 +98,6 @@ class TestIDManager(unittest.TestCase):
         self.assertAlmostEqual(ref[0], 1.0)
         self.assertAlmostEqual(ref[1], 0.25)
 
+
 if __name__ == '__main__':
     unittest.main()
