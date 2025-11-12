@@ -16,7 +16,6 @@ from rclpy.executors import SingleThreadedExecutor, ExternalShutdownException
 from rclpy.node import Node
 import rclpy
 import rclpy.duration
-import rclpy.parameter
 
 from geometry_msgs.msg import Point
 from hri_msgs.msg import Skeleton3D, Skeleton3DList
@@ -26,8 +25,8 @@ from visualization_msgs.msg import Marker, MarkerArray
 
 from scipy.spatial.transform import Rotation as R
 from threading import Lock
-from typing import List
 import numpy as np
+import copy
 
 from hri_detection_display.PersonDetectionTracker import PersonDetection
 
@@ -173,10 +172,6 @@ class NodeSkeleton3DDisplay(Node):
             'allow_half_body', True, ParameterDescriptor(
                 description='Allow displaying bodies that are not entirely visible. \
                       A body is considered whole if at least the head and one shoulder, hip and knee are visible.'))
-        # TODO Carlos: Parameter not yet implemented
-        self.declare_parameter(
-            'allow_back_turned', True, ParameterDescriptor(
-                description='Allow displaying bodies that are not facing the camera.'))
         self.declare_parameter(
             'visual_style', 'cylinder', ParameterDescriptor(
                 description='Allow changing the visual style of the skeletons. Options: "stripes", "cylinder".'))
@@ -196,8 +191,6 @@ class NodeSkeleton3DDisplay(Node):
 
         # Initialize variables
         self.allow_half_body = self.get_parameter('allow_half_body').value
-        # TODO Carlos: Parameter not yet implemented
-        self.allow_back_turned = self.get_parameter('allow_back_turned').value
         self.visual_style = self.get_parameter('visual_style').value
         self.processing_rate = self.get_parameter('processing_rate').value
         self.display_hinges = self.get_parameter('display_hinges').value
@@ -350,7 +343,7 @@ class NodeSkeleton3DDisplay(Node):
                 del self.persons_[id]
 
             # Local dict to free the lock as soon as possible
-            local_dict = self.persons_
+            local_dict = copy.deepcopy(self.persons_)
 
         for id, person in local_dict.items():
             if person.online:
@@ -954,10 +947,6 @@ class NodeSkeleton3DDisplay(Node):
                 self.allow_half_body = param.value
                 result.successful = True
                 self.get_logger().warning(f"Allow_half_body set to: {self.allow_half_body}.")
-            elif param.name == 'allow_back_turned' and param.type_ == rclpy.Parameter.Type.BOOL:
-                self.allow_back_turned = param.value
-                result.successful = True
-                self.get_logger().warning(f"Allow_back_turned set to: {self.allow_back_turned} but param is not yet implemented.")
             elif param.name == 'display_hinges' and param.type_ == rclpy.Parameter.Type.BOOL:
                 self.display_hinges = param.value
                 result.successful = True

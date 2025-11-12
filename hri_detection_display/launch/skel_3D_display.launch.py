@@ -48,11 +48,6 @@ def generate_launch_description():
         description='Allow displaying bodies that are not entirely visible. \
                       A body is considered whole if at least the head and one shoulder, hip and knee are visible.'
     )
-    allow_back_turned_arg = DeclareLaunchArgument(
-        'allow_back_turned',
-        default_value='True',
-        description='Allow displaying bodies that are not facing the camera.'
-    )
     visual_style_arg = DeclareLaunchArgument(
         'visual_style',
         default_value=['cylinder'],
@@ -93,7 +88,6 @@ def generate_launch_description():
         parameters=[{'processing_rate': LaunchConfiguration('processing_rate'),
                      'display_hinges': LaunchConfiguration('display_hinges'),
                      'allow_half_body': LaunchConfiguration('allow_half_body'),
-                     'allow_back_turned': LaunchConfiguration('allow_back_turned'),
                      'visual_style': LaunchConfiguration('visual_style')}],
         arguments=['--ros-args', '--log-level', ['node_3D_skel_display:=', log_level]],
     )
@@ -111,7 +105,6 @@ def generate_launch_description():
         log_level_arg,
         processing_rate_arg,
         allow_half_body_arg,
-        allow_back_turned_arg,
         visual_style_arg,
         display_hinges_arg,
         declare_rviz_config_file,
