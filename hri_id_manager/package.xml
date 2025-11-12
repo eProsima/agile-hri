@@ -3,7 +3,7 @@
 <package format="3">
   <name>hri_id_manager</name>
   <version>1.0.0</version>
-  <description>ROS 2 node managing IDs for hri_face_detect and hri_pose_detect nodes. Part of ROS4HRI.'.</description>
+  <description>ROS 2 node managing IDs for hri_face_detect and hri_pose_detect nodes.</description>
   <author email="carlosferreira@eprosima.com">Carlos Ferreira</author>
   <maintainer email="carlosferreira@eprosima.com">Carlos Ferreira</maintainer>
   <license>Apache License 2.0</license>

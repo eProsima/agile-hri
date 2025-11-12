@@ -281,7 +281,7 @@ class TestHRIIDManagerIntegration(unittest.TestCase):
         body = Skeleton2D()
         body_roi = NormalizedRegionOfInterest2D()
         body.key = body_id
-        # body skeleton are not used in this test
+        # body skeletons are not used in this test
         body_roi.key = body_id
         body_roi.xmin = 0.4
         body_roi.ymin = 0.2  # Only X movement

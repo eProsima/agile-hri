@@ -1,4 +1,4 @@
-# HRI ID Mangager
+# HRI ID Manager
 
 The `hri_id_manager` package provides a node that handles the ID assignation for the detections of the `hri_face_detect` and `hri_pose_detect` packages.
 The execution of this node is *MANDATORY* in order to be able to run the pose and face detection nodes of their respective packages.

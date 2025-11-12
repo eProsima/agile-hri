@@ -143,7 +143,7 @@ class IDManager(Node):
                 self.get_logger().debug(f"Face of [{id}] not detected.")
 
         if len(candidates) == 1:
-            self.get_logger().debug(f"Face [{id}] is the only match.")
+            self.get_logger().debug(f"Face [{candidates[0]}] is the only match.")
             return candidates[0]
         elif len(candidates) > 1:
             # If there are multiple candidates, select the closest one (distance is more relevant than overlapping)
@@ -156,7 +156,7 @@ class IDManager(Node):
                 if dist < min_dist:
                     min_dist = dist
                     closest_id = id
-            self.get_logger().debug(f"Face [{id}] is the better match out of: {candidates}.")
+            self.get_logger().debug(f"Face [{closest_id}] is the better match out of: {candidates}.")
             return closest_id
 
         return self.generate_id()
@@ -193,26 +193,26 @@ class IDManager(Node):
                     else:
                         self.get_logger().debug(f"Body [{id}] is too far from the body. {dist}/{body_roi_diag}={dist/body_roi_diag}.")
                 else:
-                    subs = time_check - person.times["face"].nanoseconds
+                    subs = time_check - person.times["body"].nanoseconds
                     self.get_logger().debug(f"Body [{id}] is too old: {time_check} - {subs}.")
             else:
                 self.get_logger().debug(f"Body of [{id}] not detected.")
 
         if len(candidates) == 1:
-            self.get_logger().debug(f"Body [{id}] is the only match.")
+            self.get_logger().debug(f"Body [{candidates[0]}] is the only match.")
             return candidates[0]
         elif len(candidates) > 1:
             # If there are multiple candidates, select the closest one (distance is more relevant than overlapping)
             min_dist = np.inf
             closest_id = None
             for id in candidates:
-                body_face_point = person.face_from_body
+                body_face_point = self.persons_[id].face_from_body
                 self.get_logger().debug(f"Distance between {ref_point} and {body_face_point}")
                 dist = math.dist((ref_point[0], ref_point[1]), (body_face_point[0], body_face_point[1]))
                 if dist < min_dist:
                     min_dist = dist
                     closest_id = id
-            self.get_logger().debug(f"Body [{id}] is the better match out of: {candidates}.")
+            self.get_logger().debug(f"Body [{closest_id}] is the better match out of: {candidates}.")
             return closest_id
 
         return self.generate_id()
@@ -394,7 +394,6 @@ class IDManager(Node):
                 tot_y += skeleton[point].y
                 tot_points += 1
 
-        ref_point = [0., 0.]
         if tot_points != 0:
             ref_point = [(tot_x / tot_points), (tot_y / tot_points)]
         else:

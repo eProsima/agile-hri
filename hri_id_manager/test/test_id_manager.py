@@ -54,7 +54,7 @@ class TestIDManager(unittest.TestCase):
         """Test random ID format (5 lowercase letters)."""
         self.node.deterministic_ids = False
         idr = self.node.generate_id()
-        self.assertTrue(len(idr) == 5)
+        self.assertEqual(len(idr), 5)
         self.assertTrue(idr.islower())
 
     def test_calculate_overlapping_full(self):
