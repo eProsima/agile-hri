@@ -100,8 +100,8 @@ def generate_launch_description():
                 },
             ],
         remappings=[
-            ('/camera_info', '/color/camera_info'),
-            ('/image_raw', '/color/image_raw'),
+            ('/camera_info', '/test_camera_info'),
+            ('/image_raw', '/test_image'),
             ('/image_raw/compressed', '/color/image_raw/compressed'),
         ],
     )

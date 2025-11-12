@@ -85,7 +85,7 @@ def normalized_to_pixel_coordinates(
 
 def normalized_to_pixel_coordinates_list(
         coords: List[float], image_width: int, image_height: int) -> (int, int):
-    """Convert pixel coordinates to normalized coordinates."""
+    """Convert normalized coordinates to pixel coordinates but coords is received as a list."""
     return normalized_to_pixel_coordinates(coords[0], coords[1], image_width, image_height)
 
 
@@ -117,7 +117,7 @@ class NodePersonDisplay(Node):
         # - "all": Display all detections
         self.declare_parameter(
             'display_mode', 'all', ParameterDescriptor(
-                description='Display mode. Options: "body", "face", "both", "all". Default: "both".'))
+                description='Display mode. Options: "body", "face", "both", "all". Default: "all".'))
         self.declare_parameter(
             'allow_half_body', True, ParameterDescriptor(
                 description='Allow displaying bodies that are not entirely visible. \
@@ -272,8 +272,8 @@ class NodePersonDisplay(Node):
             for id in should_delete:
                 self.get_logger().debug(f"Removing person {id}.")
                 del self.persons_[id]
-        # Publish detection
-        self.publish_detection(self.image_header)
+            # Publish detection
+            self.publish_detection(self.image_header)
 
     def update_position(self, id, position, body=False, face=False):
         """Updates the position of the given body/face"""
@@ -491,9 +491,9 @@ class NodePersonDisplay(Node):
             image_marks.header = header
             self.detection_pub_.publish(image_marks)
 
-            proccesing_duration_ms = (
+            processing_duration_ms = (
                 self.get_clock().now() - self.reception_start_proc_time).nanoseconds / 1e6
-            self.get_logger().debug(f"Displaying: {ids_print}in {proccesing_duration_ms}.")
+            self.get_logger().debug(f"Displaying: {ids_print}in {processing_duration_ms}.")
 
     def should_display_person(self, person):
         """Returns 'True' if the body should be displayed because of params requirements. 'False' otherwise."""
@@ -518,7 +518,7 @@ class NodePersonDisplay(Node):
         result.successful = False
 
         for param in params:
-            if param.name == 'processing_rate' and param.type_ == rclpy.Parameter.Type.DOUBLE:
+            if param.name == 'processing_rate':
                 self.get_logger().error("Parameter 'processing_rate' cannot be changed at runtime.")
             elif param.name == 'display_mode':
                 if param.value in ['body', 'face', 'both', 'all']:

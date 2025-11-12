@@ -53,6 +53,15 @@ def generate_launch_description():
         default_value='True',
         description='Allow displaying bodies that are not facing the camera.'
     )
+    visual_style_arg = DeclareLaunchArgument(
+        'visual_style',
+        default_value=['cylinder'],
+        description='Allow changing the visual style of the skeletons.',
+        choices=[
+            "cylinder",  # Use cylinders to represent the limbs
+            "stripes",   # Use stripes to represent the limbs
+        ],
+    )
     display_hinges_arg = DeclareLaunchArgument(
         'display_hinges',
         default_value='True',
@@ -84,7 +93,8 @@ def generate_launch_description():
         parameters=[{'processing_rate': LaunchConfiguration('processing_rate'),
                      'display_hinges': LaunchConfiguration('display_hinges'),
                      'allow_half_body': LaunchConfiguration('allow_half_body'),
-                     'allow_back_turned': LaunchConfiguration('allow_back_turned')}],
+                     'allow_back_turned': LaunchConfiguration('allow_back_turned'),
+                     'visual_style': LaunchConfiguration('visual_style')}],
         arguments=['--ros-args', '--log-level', ['node_3D_skel_display:=', log_level]],
     )
 
@@ -102,6 +112,7 @@ def generate_launch_description():
         processing_rate_arg,
         allow_half_body_arg,
         allow_back_turned_arg,
+        visual_style_arg,
         display_hinges_arg,
         declare_rviz_config_file,
         declare_pub_static_tf,

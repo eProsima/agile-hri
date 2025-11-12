@@ -142,12 +142,6 @@ def normalized_to_pixel_coordinates(
     return x_px, y_px
 
 
-def normalized_to_pixel_coordinates_list(
-        coords: List[float], image_width: int, image_height: int) -> (int, int):
-    """Convert pixel coordinates to normalized coordinates."""
-    return normalized_to_pixel_coordinates(coords[0], coords[1], image_width, image_height)
-
-
 def point_not_null(point):
     """Check if a point is not null."""
     if point.x != 0 and point.y != 0 and point.z != 0:
@@ -185,7 +179,7 @@ class NodeSkeleton3DDisplay(Node):
                 description='Allow displaying bodies that are not facing the camera.'))
         self.declare_parameter(
             'visual_style', 'cylinder', ParameterDescriptor(
-                description='Allow changing the visual style of the skeletons. Options: "stripe", "cylinder".'))
+                description='Allow changing the visual style of the skeletons. Options: "stripes", "cylinder".'))
         self.declare_parameter(
             'processing_rate', 20, ParameterDescriptor(
                 description='Best effort frequency for processing input images.'))
@@ -609,10 +603,10 @@ class NodeSkeleton3DDisplay(Node):
                 # which side we are facing
                 if skeleton[Skeleton3D.LEFT_SHOULDER].z < skeleton[Skeleton3D.RIGHT_SHOULDER].z:
                     # Left shoulder is closer to the camera
-                    self.get_logger().debug(f"Right shoulder farther than right shoulder and x_dist is: {x_dist}.")
+                    self.get_logger().debug(f"Right shoulder farther than left shoulder and x_dist is: {x_dist}.")
                     facing_positive_x = False
                 else:
-                    self.get_logger().debug(f"Left shoulder farther than left shoulder and x_dist is: {x_dist}.")
+                    self.get_logger().debug(f"Left shoulder farther than right shoulder and x_dist is: {x_dist}.")
 
             cos_theta = x_dist / sh_dist
             cos_theta = bound(cos_theta, -1, 1)
@@ -651,10 +645,10 @@ class NodeSkeleton3DDisplay(Node):
                 # which side we are facing
                 if skeleton[Skeleton3D.LEFT_HIP].z < skeleton[Skeleton3D.RIGHT_HIP].z:
                     # Left hip is closer to the camera
-                    self.get_logger().debug("Right hip farther than right hip.")
+                    self.get_logger().debug("Right hip farther than left hip.")
                     facing_positive_x = False
                 else:
-                    self.get_logger().debug("Left hip farther than left hip.")
+                    self.get_logger().debug("Left hip farther than right hip.")
 
             cos_theta = x_dist / hips_dist
             cos_theta = bound(cos_theta, -1, 1)
@@ -723,9 +717,6 @@ class NodeSkeleton3DDisplay(Node):
             hip_visible.x = head_mp.x  # Align hip with head
             spine = self.cylinder_from_points(header, id, _markers_dict['body'], head_mp, hip_visible)
             self.get_logger().debug(f"Adding spine from head and hip: {spine.ns}, {spine.id}, [{head_mp} || {hip_visible}]")
-        else:
-            spine = None
-            self.get_logger().error("Spine not added. Missing data.")
 
         return spine
 
@@ -809,7 +800,7 @@ class NodeSkeleton3DDisplay(Node):
                 arms.append(l_bot_arm)
                 self.get_logger().debug(f"Adding left bot arm from {skeleton[Skeleton3D.LEFT_ELBOW]} to {skeleton[Skeleton3D.LEFT_WRIST]}")
 
-        # Rigth arm
+        # Right arm
         if point_not_null(skeleton[Skeleton3D.RIGHT_ELBOW]):
             displacement_rotated = rotation.apply(-displacement)
             final_position = np.array([shoulders.pose.position.x,
@@ -889,7 +880,7 @@ class NodeSkeleton3DDisplay(Node):
                 l_bot_leg = self.cylinder_from_points(header, id, _markers_dict['left_botleg'], skeleton[Skeleton3D.LEFT_KNEE], skeleton[Skeleton3D.LEFT_ANKLE])
                 legs.append(l_bot_leg)
 
-        # Rigth leg
+        # Right leg
         if point_not_null(skeleton[Skeleton3D.RIGHT_KNEE]):
             displacement_rotated = rotation.apply(-displacement)
             final_position = np.array([hips.pose.position.x,
@@ -957,7 +948,7 @@ class NodeSkeleton3DDisplay(Node):
         result.successful = False
 
         for param in params:
-            if param.name == 'processing_rate' and param.type_ == rclpy.Parameter.Type.DOUBLE:
+            if param.name == 'processing_rate':
                 self.get_logger().error("Parameter 'processing_rate' cannot be changed at runtime.")
             elif param.name == 'allow_half_body' and param.type_ == rclpy.Parameter.Type.BOOL:
                 self.allow_half_body = param.value

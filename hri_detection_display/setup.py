@@ -6,7 +6,7 @@ package_name = 'hri_detection_display'
 
 setup(
     name=package_name,
-    version='0.0.0',
+    version='1.0.0',
     packages=find_packages(exclude=['test']),
     data_files=[
         ('share/ament_index/resource_index/packages',
@@ -14,8 +14,6 @@ setup(
         ('share/' + package_name, ['package.xml']),
         # Include all launch files.
         (os.path.join('share', package_name, 'launch'), glob(os.path.join('launch', '*launch.[pxy][yma]*'))),
-        # Include all params files.
-        (os.path.join('share', package_name, 'params'), glob(os.path.join('params', '*.yaml'))),
         # Include all RViz config files.
         (os.path.join('share', package_name, 'rviz'), glob(os.path.join('rviz', '*.rviz'))),
         # Include all XML profiles config files.
