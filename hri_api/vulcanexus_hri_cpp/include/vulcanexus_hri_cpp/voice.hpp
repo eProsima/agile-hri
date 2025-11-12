@@ -1,0 +1,205 @@
+// Copyright 2025 Proyectos y Sistemas de Mantenimiento SL (eProsima).
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// Copyright (c) 2023 PAL Robotics S.L. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#ifndef HRI__VOICE_HPP_
+#define HRI__VOICE_HPP_
+
+#include <memory>
+#include <mutex>
+#include <optional>
+#include <string>
+#include <vector>
+
+// #include "hri_msgs/msg/live_speech.hpp"
+#include "std_msgs/msg/bool.hpp"
+#include "tf2_ros/buffer.h"
+
+#include "vulcanexus_hri_cpp/feature_tracker.hpp"
+#include "vulcanexus_hri_cpp/types.hpp"
+
+namespace hri {
+/**
+ * @brief Class representing a detected voice/speech source.
+ * Vulcanexus HRI does not explicitly track voices, but this class is provided for compatibility with ROS4HRI.
+ * Vulcanexus HRI relies on HRI STT and HRI TTS modules to handle speech recognition and synthesis.
+ * It implements a server action based system where speech is requested, rather than continuously monitored.
+ */
+class Voice : public FeatureTracker, public std::enable_shared_from_this<Voice>
+{
+    friend class HRIListener; // for invalidate()
+
+public:
+
+    Voice(
+            ID id,
+            rclcpp::Logger logger,
+            rclcpp::CallbackGroup::SharedPtr callback_group,
+            const tf2::BufferCore& tf_buffer,
+            const std::string& reference_frame);
+
+    virtual ~Voice();
+
+    /**
+     * @brief Returns speech is currently detected in this voice, ie, whether the person is
+     * currently speaking.
+     */
+    std::optional<bool> isSpeaking() const
+    {
+        return is_speaking_;
+    }
+
+    /**
+     * @brief Returns the last recognised final sentence.
+     */
+    std::optional<std::string> speech() const
+    {
+        return speech_;
+    }
+
+    /**
+     * @brief Returns the last recognised incremental sentence.
+     */
+    std::optional<std::string> incrementalSpeech() const
+    {
+        return incremental_speech_;
+    }
+
+    /**
+     * @brief Returns the last recognised speech locale.
+     */
+    std::optional<std::string> locale() const
+    {
+        return std::nullopt;
+    }
+
+    /**
+     * @brief Registers a callback function, to be invoked everytime speech is detected.
+     *
+     * See also:
+     * * Voice::onSpeech and Voice::onIncrementalSpeech to register a callback for the actual
+     *   recognised speech
+     * * Voice::speech and Voice::incrementalSpeech for the last recognised speech
+     */
+    void onSpeaking(
+            std::function<void(bool)> callback)
+    {
+        is_speaking_callbacks_.push_back(callback);
+    }
+
+    /**
+     * @brief Registers a callback function, to be invoked everytime a full speech is detected.
+     *
+     * Only *final* sentences for this voice are returned, for instance at the end of a sentence.
+     * The callback takes two arguments:
+     * 1. the recognised speech text,
+     * 2. the locale.
+     *
+     * See also: Voice::onIncrementalSpeech for incremental feedback
+     */
+    void onSpeech(
+            std::function<void(const std::string&, const std::string&)> callback)
+    {
+        speech_callbacks_.push_back(callback);
+    }
+
+    /**
+     * @deprecated
+     * Use void onSpeech(std::function<void(const std::string &, const std::string &)> callback).
+     */
+    void onSpeech(
+            std::function<void(const std::string&)> callback)
+    {
+        speech_callbacks_.push_back(
+            [callback](const std::string& text, const std::string&)
+            {
+                callback(text);
+            });
+    }
+
+    /**
+     * @brief Registers a callback function, to be invoked everytime speech any speech is detected.
+     *
+     * The callback will be triggered every time the speech recogniser returns a result,
+     * *even if it is not the final result*.
+     * The callback takes two arguments:
+     * 1. the recognised speech text,
+     * 2. the locale.
+     *
+     * See also: Voice::onSpeech for final feedback
+     */
+    void onIncrementalSpeech(
+            std::function<void(const std::string&, const std::string&)> callback)
+    {
+        incremental_speech_callbacks_.push_back(callback);
+    }
+
+    /**
+     * @deprecated
+     * Use void onSpeech(std::function<void(const std::string &, const std::string &)> callback).
+     */
+    void onIncrementalSpeech(
+            std::function<void(const std::string&)> callback)
+    {
+        incremental_speech_callbacks_.push_back(
+            [callback](const std::string& text, const std::string&)
+            {
+                callback(text);
+            });
+    }
+
+    /**
+     * @brief Clears the registered callbacks.
+     */
+    void clearCallbacks()
+    {
+        std::lock_guard<std::mutex> lock(callbacks_lock_);
+        is_speaking_callbacks_.clear();
+        speech_callbacks_.clear();
+        incremental_speech_callbacks_.clear();
+    }
+
+private:
+    void invalidate();
+
+    std::optional<bool> is_speaking_;
+    std::optional<std::string> speech_;
+    std::optional<std::string> incremental_speech_;
+
+    std::mutex callbacks_lock_;
+    std::vector<std::function<void(bool)>> is_speaking_callbacks_;
+    std::vector<std::function<void(const std::string&, const std::string&)>> speech_callbacks_;
+    std::vector<std::function<void(const std::string&, const std::string&)>>
+    incremental_speech_callbacks_;
+};
+
+typedef std::shared_ptr<Voice> VoicePtr;
+typedef std::shared_ptr<const Voice> ConstVoicePtr;
+
+}  // namespace hri
+
+#endif  // HRI__VOICE_HPP_
