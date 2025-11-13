@@ -35,12 +35,12 @@
 
 #include "geometry_msgs/msg/transform_stamped.hpp"
 #include "hri_msgs/msg/expression.hpp"
+#include "hri_msgs/msg/face2_d.hpp"
 #include "hri_msgs/msg/facial_landmarks.hpp"
 #include "hri_msgs/msg/normalized_region_of_interest2_d.hpp"
-#include "hri_msgs/msg/face2_d.hpp"
+
 #include "opencv2/core.hpp"
 #include "rclcpp/rclcpp.hpp"
-#include "sensor_msgs/msg/image.hpp"
 #include "tf2_ros/buffer.h"
 
 #include "hri/feature_tracker.hpp"

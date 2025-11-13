@@ -26,8 +26,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef HRI__VULCANEXUS_HRI_HPP_
-#define HRI__VULCANEXUS_HRI_HPP_
+#ifndef HRI__HRI_HPP_
+#define HRI__HRI_HPP_
 
 #include <functional>
 #include <map>
@@ -36,16 +36,17 @@
 #include <string>
 #include <vector>
 
-#include "rclcpp/rclcpp.hpp"
-#include <rclcpp_action/rclcpp_action.hpp>
-#include "rclcpp/node_interfaces/node_interfaces.hpp"
+#include "hri_msgs/action/stt.hpp"
+#include "hri_msgs/msg/expression.hpp"
+#include "hri_msgs/msg/face2_d_list.hpp"
 #include "hri_msgs/msg/skeleton2_d_list.hpp"
 #include "hri_msgs/msg/skeleton3_d_list.hpp"
-#include "hri_msgs/msg/face2_d_list.hpp"
-#include "hri_msgs/msg/expression.hpp"
-#include "hri_msgs/action/stt.hpp"
+
+#include "rclcpp/node_interfaces/node_interfaces.hpp"
+#include "rclcpp/rclcpp.hpp"
 #include "tf2_ros/buffer.h"
 #include "tf2_ros/transform_listener.h"
+#include "rclcpp_action/rclcpp_action.hpp"
 
 #include "hri/types.hpp"
 #include "hri/face.hpp"
@@ -440,4 +441,4 @@ private:
 
 }  // namespace hri
 
-#endif  // HRI__VULCANEXUS_HRI_HPP_
+#endif  // HRI__HRI_HPP_

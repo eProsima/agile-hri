@@ -31,8 +31,6 @@
 #include <functional>
 #include <string>
 
-// #include "hri_msgs/msg/live_speech.hpp"
-#include "std_msgs/msg/bool.hpp"
 #include "tf2_ros/buffer.h"
 
 #include "hri/feature_tracker.hpp"

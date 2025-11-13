@@ -30,17 +30,8 @@
 #include <chrono>
 #include <memory>
 
-// #include "cv_bridge/cv_bridge.h"
 #include "geometry_msgs/msg/transform_stamped.hpp"
-#include "gtest/gtest.h"
-#include "hri/hri.hpp"
-#include "hri/face.hpp"
-#include "hri/person.hpp"
-#include "hri/voice.hpp"
-// #include "hri_msgs/msg/engagement_level.hpp"
 #include "hri_msgs/msg/expression.hpp"
-// #include "hri_msgs/msg/ids_list.hpp"
-// #include "hri_msgs/msg/live_speech.hpp"
 #include "hri_msgs/msg/normalized_region_of_interest2_d.hpp"
 #include "hri_msgs/msg/face2_d_list.hpp"
 #include "hri_msgs/msg/face2_d.hpp"
@@ -48,7 +39,8 @@
 #include "hri_msgs/msg/skeleton2_d.hpp"
 #include "hri_msgs/msg/audio.hpp"
 #include "hri_msgs/action/stt.hpp"
-// #include "hri_msgs/msg/soft_biometrics.hpp"
+
+#include "gtest/gtest.h"
 #include "opencv2/core.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/image.hpp"
@@ -56,6 +48,11 @@
 #include "std_msgs/msg/float32.hpp"
 #include "std_msgs/msg/string.hpp"
 #include "tf2_ros/static_transform_broadcaster.h"
+
+#include "hri/hri.hpp"
+#include "hri/face.hpp"
+#include "hri/person.hpp"
+#include "hri/voice.hpp"
 
 using namespace std::chrono_literals;
 

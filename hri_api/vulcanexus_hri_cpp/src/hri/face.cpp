@@ -31,17 +31,14 @@
 #include <functional>
 #include <string>
 
-// #include "cv_bridge/cv_bridge.h"
 #include "geometry_msgs/msg/transform_stamped.hpp"
 #include "hri_msgs/msg/expression.hpp"
-// #include "hri_msgs/msg/facial_action_units.hpp"
 #include "hri_msgs/msg/facial_landmarks.hpp"
 #include "hri_msgs/msg/normalized_region_of_interest2_d.hpp"
 #include "hri_msgs/msg/normalized_point_of_interest2_d.hpp"
-// #include "hri_msgs/msg/soft_biometrics.hpp"
+
 #include "magic_enum.hpp"
 #include "rclcpp/rclcpp.hpp"
-#include "sensor_msgs/msg/image.hpp"
 
 #include "hri/feature_tracker.hpp"
 #include "hri/types.hpp"

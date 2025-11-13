@@ -34,10 +34,6 @@
 #include <string>
 
 #include "geometry_msgs/msg/transform_stamped.hpp"
-// #include "hri_msgs/msg/engagement_level.hpp"
-#include "std_msgs/msg/float32.hpp"
-#include "std_msgs/msg/string.hpp"
-#include "std_msgs/msg/bool.hpp"
 #include "tf2_ros/buffer.h"
 
 #include "hri/body.hpp"

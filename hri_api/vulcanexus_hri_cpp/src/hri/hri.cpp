@@ -28,8 +28,9 @@
 
 #include "hri/hri.hpp"
 
-#include <rclcpp/executors/single_threaded_executor.hpp>
 #include <set>
+
+#include <rclcpp/executors/single_threaded_executor.hpp>
 
 namespace hri {
 
