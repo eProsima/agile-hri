@@ -34,7 +34,7 @@
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/image.hpp"
 
-#include "vulcanexus_hri_cpp/vulcanexus_hri.hpp"
+#include "hri/hri.hpp"
 
 using namespace std::chrono_literals;
 

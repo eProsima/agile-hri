@@ -43,8 +43,8 @@
 #include "sensor_msgs/msg/image.hpp"
 #include "tf2_ros/buffer.h"
 
-#include "vulcanexus_hri_cpp/feature_tracker.hpp"
-#include "vulcanexus_hri_cpp/types.hpp"
+#include "hri/feature_tracker.hpp"
+#include "hri/types.hpp"
 
 namespace hri {
 

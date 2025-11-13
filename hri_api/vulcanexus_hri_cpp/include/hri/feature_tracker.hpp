@@ -22,7 +22,7 @@
 #include "rclcpp/rclcpp.hpp"
 #include "tf2_ros/buffer.h"
 
-#include "vulcanexus_hri_cpp/types.hpp"
+#include "hri/types.hpp"
 
 namespace hri {
 

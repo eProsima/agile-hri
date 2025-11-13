@@ -33,13 +33,13 @@
 #include <string>
 #include <thread>
 
-#include "vulcanexus_hri_cpp/body.hpp"
-#include "vulcanexus_hri_cpp/face.hpp"
-#include "vulcanexus_hri_cpp/feature_tracker.hpp"
-#include "vulcanexus_hri_cpp/vulcanexus_hri.hpp"
-#include "vulcanexus_hri_cpp/person.hpp"
-#include "vulcanexus_hri_cpp/types.hpp"
-#include "vulcanexus_hri_cpp/voice.hpp"
+#include "hri/body.hpp"
+#include "hri/face.hpp"
+#include "hri/feature_tracker.hpp"
+#include "hri/hri.hpp"
+#include "hri/person.hpp"
+#include "hri/types.hpp"
+#include "hri/voice.hpp"
 #include "pybind11/chrono.h"
 #include "pybind11/functional.h"
 #include "pybind11/operators.h"

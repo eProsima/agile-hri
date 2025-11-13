@@ -26,7 +26,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "vulcanexus_hri_cpp/body.hpp"
+#include "hri/body.hpp"
 
 #include <functional>
 #include <string>
@@ -39,8 +39,8 @@
 #include "sensor_msgs/msg/image.hpp"
 #include "tf2_ros/buffer.h"
 
-#include "vulcanexus_hri_cpp/feature_tracker.hpp"
-#include "vulcanexus_hri_cpp/types.hpp"
+#include "hri/feature_tracker.hpp"
+#include "hri/types.hpp"
 
 namespace hri {
 

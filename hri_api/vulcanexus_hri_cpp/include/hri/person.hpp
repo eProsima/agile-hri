@@ -41,11 +41,11 @@
 #include "std_msgs/msg/bool.hpp"
 #include "tf2_ros/buffer.h"
 
-#include "vulcanexus_hri_cpp/body.hpp"
-#include "vulcanexus_hri_cpp/face.hpp"
-#include "vulcanexus_hri_cpp/feature_tracker.hpp"
-#include "vulcanexus_hri_cpp/types.hpp"
-#include "vulcanexus_hri_cpp/voice.hpp"
+#include "hri/body.hpp"
+#include "hri/face.hpp"
+#include "hri/feature_tracker.hpp"
+#include "hri/types.hpp"
+#include "hri/voice.hpp"
 
 namespace hri {
 

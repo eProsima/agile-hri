@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "vulcanexus_hri_cpp/feature_tracker.hpp"
+#include "hri/feature_tracker.hpp"
 
 #include <optional>
 #include <string>

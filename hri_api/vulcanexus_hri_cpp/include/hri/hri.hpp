@@ -47,11 +47,11 @@
 #include "tf2_ros/buffer.h"
 #include "tf2_ros/transform_listener.h"
 
-#include "vulcanexus_hri_cpp/types.hpp"
-#include "vulcanexus_hri_cpp/face.hpp"
-#include "vulcanexus_hri_cpp/body.hpp"
-#include "vulcanexus_hri_cpp/voice.hpp"
-#include "vulcanexus_hri_cpp/person.hpp"
+#include "hri/types.hpp"
+#include "hri/face.hpp"
+#include "hri/body.hpp"
+#include "hri/voice.hpp"
+#include "hri/person.hpp"
 
 namespace hri {
 

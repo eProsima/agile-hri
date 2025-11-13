@@ -26,7 +26,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "vulcanexus_hri_cpp/voice.hpp"
+#include "hri/voice.hpp"
 
 #include <functional>
 #include <string>
@@ -35,8 +35,8 @@
 #include "std_msgs/msg/bool.hpp"
 #include "tf2_ros/buffer.h"
 
-#include "vulcanexus_hri_cpp/feature_tracker.hpp"
-#include "vulcanexus_hri_cpp/types.hpp"
+#include "hri/feature_tracker.hpp"
+#include "hri/types.hpp"
 
 namespace hri {
 

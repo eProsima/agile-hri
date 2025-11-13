@@ -28,12 +28,12 @@ find_package(OpenCV REQUIRED)
 find_package(magic_enum CONFIG REQUIRED)
 
 # Targets
-ament_auto_add_library(${PROJECT_NAME} SHARED DIRECTORY src/vulcanexus_hri_cpp)
-target_link_libraries(${PROJECT_NAME} magic_enum::magic_enum)
+set(LIBRARY_NAME "hri")
+ament_auto_add_library(${LIBRARY_NAME} SHARED DIRECTORY src/hri)
+target_link_libraries(${LIBRARY_NAME} magic_enum::magic_enum)
 
 option(COMPILE_EXAMPLE "Build example" ON)
 if (COMPILE_EXAMPLE)
-    message(STATUS "Building example for ${PROJECT_NAME}")
     find_package(cv_bridge REQUIRED)
     find_package(rclcpp REQUIRED)
     find_package(sensor_msgs REQUIRED)
@@ -44,7 +44,7 @@ if (COMPILE_EXAMPLE)
         sensor_msgs
         cv_bridge
     )
-    target_link_libraries(${PROJECT_NAME}_example_faces ${PROJECT_NAME} ${OpenCV_LIBRARIES})
+    target_link_libraries(${PROJECT_NAME}_example_faces ${LIBRARY_NAME} ${OpenCV_LIBRARIES})
 
     add_executable(${PROJECT_NAME}_example_bodies src/example_bodies.cpp)
     ament_target_dependencies(${PROJECT_NAME}_example_bodies
@@ -52,13 +52,13 @@ if (COMPILE_EXAMPLE)
         sensor_msgs
         cv_bridge
     )
-    target_link_libraries(${PROJECT_NAME}_example_bodies ${PROJECT_NAME} ${OpenCV_LIBRARIES})
+    target_link_libraries(${PROJECT_NAME}_example_bodies ${LIBRARY_NAME} ${OpenCV_LIBRARIES})
 
     add_executable(${PROJECT_NAME}_example_voice src/example_voices.cpp)
     ament_target_dependencies(${PROJECT_NAME}_example_voice
         rclcpp
     )
-    target_link_libraries(${PROJECT_NAME}_example_voice ${PROJECT_NAME})
+    target_link_libraries(${PROJECT_NAME}_example_voice ${LIBRARY_NAME})
 endif()
 
 # Tests
