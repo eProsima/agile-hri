@@ -40,7 +40,17 @@ public:
 
     std::string request_speech()
     {
-        std::string speech = hri_listener_->getSpeech();
+        std::string speech;
+        try
+        {
+            RCLCPP_INFO(this->get_logger(), "Requesting speech from user...");
+            speech = hri_listener_->getSpeech();
+        }
+        catch (const std::exception& e)
+        {
+            RCLCPP_ERROR(this->get_logger(), "Error requesting speech: %s", e.what());
+            throw;
+        }
         RCLCPP_INFO(this->get_logger(), "Recognized speech: %s", speech.c_str());
         return speech;
     }

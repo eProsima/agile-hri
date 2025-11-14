@@ -29,6 +29,7 @@
 #include "hri/hri.hpp"
 
 #include <set>
+#include <future>
 
 #include <rclcpp/executors/single_threaded_executor.hpp>
 
@@ -135,6 +136,15 @@ std::string HRIListener::getSpeech() const
         throw std::runtime_error("STT server not available within accept timeout");
     }
 
+    // Check if the node is already associated to an executor
+    bool already_in_executor = node_base_interfaces_->get_associated_with_executor_atomic().load();
+    std::shared_ptr<rclcpp::executors::SingleThreadedExecutor> exec_shared_ptr = nullptr;
+    if (!already_in_executor)
+    {
+        exec_shared_ptr = std::make_shared<rclcpp::executors::SingleThreadedExecutor>();
+        exec_shared_ptr->add_node(node_base_interfaces_);
+    }
+
     auto goal = hri_msgs::action::Stt::Goal();
     goal.start = true;
 
@@ -154,15 +164,30 @@ std::string HRIListener::getSpeech() const
 
     auto goal_future = stt_client_->async_send_goal(goal, opts);
 
-    rclcpp::executors::SingleThreadedExecutor exec;
-    exec.add_node(node_base_interfaces_);
     // Wait for goal acceptance
-    auto ret = exec.spin_until_future_complete(goal_future, accept_timeout_);
+    rclcpp::FutureReturnCode ret;
+    if (already_in_executor)
+    {
+        // The node is already in an executor, do not spin in this thread
+        if (goal_future.wait_for(accept_timeout_) != std::future_status::ready)
+        {
+            ret = rclcpp::FutureReturnCode::TIMEOUT;
+        }
+        else
+        {
+            ret = rclcpp::FutureReturnCode::SUCCESS;
+        }
+    }
+    else
+    {
+        // Spin the temporary executor until the future is complete
+        ret = exec_shared_ptr->spin_until_future_complete(goal_future, accept_timeout_);
+    }
     if (ret == rclcpp::FutureReturnCode::TIMEOUT)
     {
         throw std::runtime_error("Timeout waiting for STT goal acceptance");
     }
-    if (ret != rclcpp::FutureReturnCode::SUCCESS)
+    else if (ret != rclcpp::FutureReturnCode::SUCCESS)
     {
         throw std::runtime_error("Failed while waiting for STT goal acceptance");
     }
@@ -174,13 +199,27 @@ std::string HRIListener::getSpeech() const
         throw std::runtime_error("STT goal was rejected");
     }
     auto result_future = stt_client_->async_get_result(goal_handle);
-    ret = exec.spin_until_future_complete(result_future, result_timeout_);
+    if (already_in_executor)
+    {
+        if (result_future.wait_for(result_timeout_) != std::future_status::ready)
+        {
+            ret = rclcpp::FutureReturnCode::TIMEOUT;
+        }
+        else
+        {
+            ret = rclcpp::FutureReturnCode::SUCCESS;
+        }
+    }
+    else
+    {
+        ret = exec_shared_ptr->spin_until_future_complete(result_future, result_timeout_);
+    }
     if (ret == rclcpp::FutureReturnCode::TIMEOUT)
     {
         (void)stt_client_->async_cancel_goal(goal_handle);
         throw std::runtime_error("Timeout waiting for STT result");
     }
-    if (ret != rclcpp::FutureReturnCode::SUCCESS)
+    else if (ret != rclcpp::FutureReturnCode::SUCCESS)
     {
         (void)stt_client_->async_cancel_goal(goal_handle);
         throw std::runtime_error("Failed while waiting for STT result");
@@ -206,7 +245,6 @@ std::string HRIListener::getSpeech() const
     // Final speech
     return wrapped.result->speech;
 }
-
 
 std::map<ID, VoicePtr> HRIListener::getVoices() const
 {
