@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>hri_detection_display</name>
+  <version>1.0.0</version>
+  <description>
+    Publishes an image with detections from the `hri_face_detect`, `hri_emotion_detect` and `hri_pose_detect`.
+  </description>
+  <author email="carlosferreira@eprosima.com">Carlos Ferreira</author>
+  <maintainer email="carlosferreira@eprosima.com">Carlos Ferreira</maintainer>
+  <license file="LICENSE">Apache License 2.0</license>
+
+  <url type="website">https://www.eprosima.com/</url>
+
+  <depend>geometry_msgs</depend>
+  <depend>hri_msgs</depend>
+  <depend>rclcpp</depend>
+  <depend>std_msgs</depend>
+  <depend>std_srvs</depend>
+  <depend>tf2_ros</depend>
+
+  <export>
+      <build_type>ament_python</build_type>
+  </export>
+</package>
