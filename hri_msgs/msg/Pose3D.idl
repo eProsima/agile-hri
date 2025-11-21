@@ -1,0 +1,30 @@
+// Copyright 2024 Proyectos y Sistemas de Mantenimiento SL (eProsima).
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// Pose3D.idl
+// This IDL defines a 3D Pose. It can be used to define a goal position in space
+// for a specific robot.
+// It contains:
+//   - Key annotation serving as unique identifier of the Pose. Supported only by rmw_fastrtps and Fast DDS
+//   - A 3D stamped point
+
+module hri_msgs {
+    module msg {
+        struct Pose3D {
+            @key string key;
+
+            geometry_msgs::msg::PoseStamped point;
+        };
+    };
+};
