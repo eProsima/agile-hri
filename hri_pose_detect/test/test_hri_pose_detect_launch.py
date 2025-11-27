@@ -382,7 +382,7 @@ class TestHRIPoseDetectIntegration(unittest.TestCase):
         if pub_thread.is_alive():
             pub_thread.join()
 
-        self.assertFalse(self.msg_received.is_set(), "Skeleton2DList received after publishing emtpy image.")
+        self.assertFalse(self.msg_received.is_set(), "Skeleton2DList received after publishing empty image.")
         self.assertEqual(self.skeletons_msg, None)
 
 

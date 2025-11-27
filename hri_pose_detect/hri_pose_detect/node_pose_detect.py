@@ -274,7 +274,8 @@ class NodePoseDetect(Node):
             self.destroy_subscription(self.depth_info_sub)
 
         self.destroy_publisher(self.bodies_pub)
-        self.destroy_publisher(self.bodies3D_pub)
+        if hasattr(self, 'bodies3D_pub'):
+            self.destroy_publisher(self.bodies3D_pub)
 
     def info_callback(self, msg: CameraInfo):
         """Callback to save metadata about the camera. Can be used for calibration"""
@@ -549,12 +550,12 @@ class NodePoseDetect(Node):
         """Stop the detection process."""
         try:
             self.queue_in.put('stop')
-            time.sleep(1) # Give time to process the stop command and unload de model
+            time.sleep(1) # Give time to process the stop command and unload the model
             self.queue_out.close()
             self.queue_in.close()
             self.queue_in.cancel_join_thread()
             self.queue_out.cancel_join_thread()
-        except:
+        except Exception:
             pass
         if self.detection_process.is_alive():
             self.detection_process.join(timeout=5)

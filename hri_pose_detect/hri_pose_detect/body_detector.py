@@ -39,7 +39,6 @@ from ultralytics import YOLO
 import cv2
 import math
 import numpy as np
-import os
 import time
 
 ColorType: TypeAlias = 'numpy.dtype[numpy.uint8]'
@@ -527,7 +526,7 @@ class BodyDetector:
             while True:
                 if self.detector is None:
                     self.node.get_logger().warning("In RUN YOLO model not loaded.")
-                    return []
+                    return
 
                 if queue_in.empty():
                     # Aprox 30 Hz
