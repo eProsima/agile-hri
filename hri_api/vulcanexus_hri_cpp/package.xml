@@ -1,0 +1,31 @@
+<?xml version = "1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+    <name>vulcanexus_hri_cpp</name>
+    <version>1.0.0</version>
+    <description>A wrapper library for the Vulcanexus HRI ecosystem</description>
+    <author email="carlosferreira@eprosima.com">Carlos Ferreira</author>
+    <maintainer email="carlosferreira@eprosima.com">Carlos Ferreira</maintainer>
+    <license>Apache License 2.0</license>
+
+    <url type="website">https://www.eprosima.com/</url>
+
+    <buildtool_depend>ament_cmake_auto</buildtool_depend>
+
+    <build_depend>magic_enum</build_depend>
+
+    <depend>tf2</depend>
+    <depend>cv_bridge</depend>
+    <depend>geometry_msgs</depend>
+    <depend>hri_msgs</depend>
+    <depend>libopencv-dev</depend>
+    <depend>rclcpp</depend>
+    <depend>rclcpp_lifecycle</depend>
+    <depend>sensor_msgs</depend>
+    <depend>std_msgs</depend>
+    <depend>tf2_ros</depend>
+
+    <export>
+        <build_type>ament_cmake</build_type>
+    </export>
+</package>
