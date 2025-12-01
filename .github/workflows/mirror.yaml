@@ -1,0 +1,18 @@
+name: mirror
+
+on:
+  push:
+    branches:
+      - 'main'
+jobs:
+  mirror_job:
+    runs-on: ubuntu-latest
+    name: Mirror main branch to latest Vulcanexus release (kilted)
+    steps:
+    - name: Mirror action step
+      id: mirror
+      uses: google/mirror-branch-action@v1.0
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        source: 'main'
+        dest: 'kilted'
