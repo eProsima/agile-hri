@@ -15,13 +15,13 @@ It combines computer vision, speech, emotion recognition, and higher-level behav
 
 **Vulcanexus HRI** provides a set of ROS 2–based components for:
 
+- Shared HRI message definitions (hri_msgs)
 - Face detection and recognition
 - Human pose recognition
 - Emotion recognition
-- Visual displays
 - Speech-to-Text (STT)
 - Text-to-Speech (TTS)
-- Shared HRI message definitions (`hri_msgs`)
+- Visual displays
 
 All of these components are designed to work together on top of ROS 2 and Fast DDS.
 
