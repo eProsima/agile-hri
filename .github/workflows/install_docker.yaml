@@ -47,6 +47,7 @@ jobs:
         ref: ${{ env.BRANCH }}
 
     - name: Run install script
+      shell: bash
       run: |
         source /opt/vulcanexus/${{ env.VULCANEXUS_DISTRO }}/setup.bash && bash src/agile-hri/install_hri.sh -y
 

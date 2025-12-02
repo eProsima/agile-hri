@@ -52,15 +52,18 @@ jobs:
         upgrade: false
 
     - name: Get Vulcanexus Script
+      shell: bash
       run: |
         wget -qO linux_binary_installation.bash https://raw.githubusercontent.com/eProsima/vulcanexus/refs/heads/${{ env.VULCANEXUS_DISTRO }}/docs/resources/scripts/linux_binary_installation.bash
         chmod +x ./linux_binary_installation.bash
 
     - name: Run Vulcanexus Script
+      shell: bash
       run: |
         ./linux_binary_installation.bash
 
     - name: Run install script
+      shell: bash
       run: |
         source /opt/vulcanexus/${{ env.VULCANEXUS_DISTRO }}/setup.bash && bash src/agile-hri/install_hri.sh -y
 
