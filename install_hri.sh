@@ -31,7 +31,7 @@ print_help()
 Usage: install_hri [options]
 
 Options:
-  --venv PATH     Use the Python and pip from the virtual environment at PATH
+  --venv PATH     Use the Python and pip from the existing virtual environment at PATH
   -y, --yes       Do not ask for confirmation (assume 'yes')
   -h, --help      Show this help message
 
@@ -141,7 +141,7 @@ if [[ -n "$VENV_PATH" ]]; then
         echo "Error: $VENV_PATH/bin/python not found." >&2
         exit 1
     fi
-    PYTHON_BIN="$VENV_PATH/bin/python"
+    PYTHON_BIN="$(realpath "$VENV_PATH")/bin/python"
     echo "Using virtual environment Python: $PYTHON_BIN"
 else
     echo "Using system Python: $PYTHON_BIN"
@@ -225,7 +225,7 @@ if [[ -d "$HRI_ROS_WS/src" ]]; then
 
     echo "Building ROS2 workspace at $HRI_ROS_WS ..."
     cd "$HRI_ROS_WS"
-    colcon build
+    "$PYTHON_BIN" -m colcon build
 
     VULCANEXUS_PREFIX="/opt/vulcanexus/${VULCANEXUS_DISTRO}"
 
