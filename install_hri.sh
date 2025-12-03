@@ -401,6 +401,13 @@ uninstall()
 
     # Dependencies removal
     if [[ "$UNINSTALL_DEPS" == "true" ]]; then
+        # Pip packages removal first to avoid uninstalling pip with apt
+        echo "Removing pip dependencies packages"
+        for pkg in "${PIP_NEW_PACKAGES[@]}"; do
+            "$PYTHON_BIN" -m pip uninstall -y --break-system-packages "$pkg" || true
+        done
+        rm -f "$PIP_STATE_FILE"
+
         # APT packages removal
         echo "Removing APT dependencies packages"
         if ((${#APT_NEW_PACKAGES[@]} > 0)); then
@@ -409,13 +416,6 @@ uninstall()
             echo "No APT packages to remove."
         fi
         rm -f "$APT_STATE_FILE"
-
-        # Pip packages removal
-        echo "Removing pip dependencies packages"
-        for pkg in "${PIP_NEW_PACKAGES[@]}"; do
-            "$PYTHON_BIN" -m pip uninstall -y --break-system-packages "$pkg" || true
-        done
-        rm -f "$PIP_STATE_FILE"
     else
         echo "Skipping dependency removal as per user request."
     fi
@@ -429,22 +429,22 @@ uninstall()
     for pkg in "${HRI_PACKAGES[@]}"; do
         echo "Removing HRI package: $pkg"
         # Include dirs
-        rm -rf "${INSTALLATION_PATH}/include/${pkg}" || true
+        $SUDO rm -rf "${INSTALLATION_PATH}/include/${pkg}" || true
 
         # Lib dirs
-        rm -rf "${INSTALLATION_PATH}/lib/${pkg}" || true
-        rm -rf "${INSTALLATION_PATH}/lib/lib${pkg}*" || true
-        rm -rf "${INSTALLATION_PATH}/lib/python3.12/site-packages/${pkg}*" || true
+        $SUDO rm -rf "${INSTALLATION_PATH}/lib/${pkg}" || true
+        $SUDO rm -rf "${INSTALLATION_PATH}/lib/lib${pkg}*" || true
+        $SUDO rm -rf "${INSTALLATION_PATH}/lib/python3.12/site-packages/${pkg}*" || true
 
         # Share dirs
-        rm -rf "${INSTALLATION_PATH}/share/${pkg}" || true
+        $SUDO rm -rf "${INSTALLATION_PATH}/share/${pkg}" || true
 
-        rm -rf "${INSTALLATION_PATH}/share/ament_index/resource_index/packages/${pkg}" || true
-        rm -rf "${INSTALLATION_PATH}/share/ament_index/resource_index/parent_prefix_path/${pkg}" || true
-        rm -rf "${INSTALLATION_PATH}/share/ament_index/resource_index/rosidl_interfaces/${pkg}" || true
-        rm -rf "${INSTALLATION_PATH}/share/ament_index/resource_index/package_run_dependencies/${pkg}" || true
+        $SUDO rm -rf "${INSTALLATION_PATH}/share/ament_index/resource_index/packages/${pkg}" || true
+        $SUDO rm -rf "${INSTALLATION_PATH}/share/ament_index/resource_index/parent_prefix_path/${pkg}" || true
+        $SUDO rm -rf "${INSTALLATION_PATH}/share/ament_index/resource_index/rosidl_interfaces/${pkg}" || true
+        $SUDO rm -rf "${INSTALLATION_PATH}/share/ament_index/resource_index/package_run_dependencies/${pkg}" || true
 
-        rm -rf "${INSTALLATION_PATH}/share/colcon-core/packages/${pkg}" || true
+        $SUDO rm -rf "${INSTALLATION_PATH}/share/colcon-core/packages/${pkg}" || true
     done
 
     for file in "${EXTRA_FILES_REMOVAL[@]}"; do

@@ -110,3 +110,47 @@ jobs:
         done
 
         echo "Python virtual environment sanity check passed"
+
+    - name: Clean up HRI installation
+      shell: bash
+      run: |
+        bash src/agile-hri/install_hri.sh --uninstall -y --venv hri_venv
+
+    - name: Verify HRI uninstallation
+      shell: bash
+      env:
+        VULCANEXUS_DISTRO: ${{ env.VULCANEXUS_DISTRO }}
+      run: |
+        source "/opt/vulcanexus/${VULCANEXUS_DISTRO}/setup.bash"
+
+        set -euo pipefail
+
+        echo "Checking HRI ROS 2 packages are not discoverable..."
+        for pkg in hri_msgs hri_id_manager hri_face_detect hri_pose_detect hri_emotion_detect hri_detection_display hri_stt hri_tts; do
+          if ros2 pkg list | grep -x "$pkg" > /dev/null; then
+            echo "ERROR: Package '$pkg' found in 'ros2 pkg list' after uninstallation"
+            exit 1
+          fi
+          echo "  - Not found package: $pkg"
+        done
+
+        echo "Checking that HRI message types are not available..."
+        if ros2 interface show hri_msgs/msg/Audio > /dev/null; then
+          echo "ERROR: HRI message type 'hri_msgs/msg/Audio' found after uninstallation"
+          exit 1
+        fi
+        if ros2 interface show hri_msgs/msg/NormalizedPointOfInterest2D > /dev/null; then
+          echo "ERROR: HRI message type 'hri_msgs/msg/NormalizedPointOfInterest2D' found after uninstallation"
+          exit 1
+        fi
+
+        echo "HRI uninstallation sanity check passed"
+
+        # Check Python packages
+        for pkg in ultralytics torch mediapipe; do
+          if hri_venv/bin/python3 -c "import $pkg" > /dev/null 2>&1; then
+            echo "ERROR: Python package '$pkg' found in virtual environment after uninstallation"
+            exit 1
+          fi
+          echo "  - Not found Python package in venv: $pkg"
+        done
