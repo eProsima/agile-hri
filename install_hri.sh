@@ -433,8 +433,8 @@ uninstall()
 
         # Lib dirs
         $SUDO rm -rf "${INSTALLATION_PATH}/lib/${pkg}" || true
-        $SUDO rm -rf "${INSTALLATION_PATH}/lib/lib${pkg}*" || true
-        $SUDO rm -rf "${INSTALLATION_PATH}/lib/python3.12/site-packages/${pkg}*" || true
+        $SUDO rm -rf "${INSTALLATION_PATH}/lib/lib${pkg}"* || true
+        $SUDO rm -rf "${INSTALLATION_PATH}/lib/python3.12/site-packages/${pkg}"* || true
 
         # Share dirs
         $SUDO rm -rf "${INSTALLATION_PATH}/share/${pkg}" || true
