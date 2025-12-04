@@ -403,9 +403,7 @@ uninstall()
     if [[ "$UNINSTALL_DEPS" == "true" ]]; then
         # Pip packages removal first to avoid uninstalling pip with apt
         echo "Removing pip dependencies packages"
-        for pkg in "${PIP_NEW_PACKAGES[@]}"; do
-            "$PYTHON_BIN" -m pip uninstall -y --break-system-packages "$pkg" || true
-        done
+        "$PYTHON_BIN" -m pip uninstall -y --break-system-packages "${PIP_NEW_PACKAGES[@]}" || true
         rm -f "$PIP_STATE_FILE"
 
         # APT packages removal
