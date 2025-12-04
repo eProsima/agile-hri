@@ -295,6 +295,14 @@ install()
     set_python_bin
     clean_pip_requirements "$TMP_REQ"
 
+    COLCON_INSTALLED_BY_SCRIPT="false"
+
+    if ! "$PYTHON_BIN" -m pip show colcon-common-extensions >/dev/null 2>&1; then
+        echo "Adding colcon-common-extensions to install requirements ..."
+        echo "colcon-common-extensions" >> "$TMP_REQ"
+        COLCON_INSTALLED_BY_SCRIPT="true"
+    fi
+
     echo "Installing Python HRI dependencies from $TMP_REQ ..."
     PIP_NEW_PACKAGES=()
     for pkg in "${REQ_PKGS[@]}"; do
@@ -307,14 +315,6 @@ install()
         --break-system-packages \
         --ignore-installed \
         -r "$TMP_REQ"
-
-    COLCON_INSTALLED_BY_SCRIPT="false"
-
-    if ! "$PYTHON_BIN" -m pip show colcon-common-extensions >/dev/null 2>&1; then
-        echo "Installing colcon-common-extensions ..."
-        "$PYTHON_BIN" -m pip install --break-system-packages --no-cache-dir colcon-common-extensions
-        COLCON_INSTALLED_BY_SCRIPT="true"
-    fi
 
     if ((${#PIP_NEW_PACKAGES[@]} > 0)); then
         $SUDO mkdir -p "$HRI_STATE_DIR"
@@ -374,8 +374,8 @@ install()
     fi
 
     if [ "$COLCON_INSTALLED_BY_SCRIPT" = "true" ]; then
-        echo "Uninstalling colcon-common-extensions ..."
-        "$PYTHON_BIN" -m pip uninstall -y colcon-common-extensions --break-system-packages
+        echo "Uninstalling colcon-common-extensions and its deps ..."
+        "$PYTHON_BIN" -m pip uninstall -y --break-system-packages colcon-common-extensions colcon-argcomplete colcon-bash colcon-cd colcon-cmake colcon-core colcon-defaults colcon-devtools colcon-library-path colcon-metadata colcon-notification colcon-output colcon-package-information colcon-package-selection colcon-parallel-executor colcon-powershell colcon-python-setup-py colcon-recursive-crawl colcon-ros colcon-test-result colcon-zsh
     fi
 
     echo "====================================================="
