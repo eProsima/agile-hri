@@ -1,0 +1,149 @@
+name: "Verify HRI installation"
+description: "Checks HRI ROS 2 packages and Python deps (system or venv)."
+
+inputs:
+  vulcanexus-distro:
+    description: "Vulcanexus distribution name"
+    required: true
+    default: "kilted"
+
+  python-bin:
+    description: "Python interpreter to use (e.g. python3, .venv/bin/python)"
+    required: false
+    default: "python3"
+
+  # When true: require HRI to be installed (ROS 2 + pip, if enabled).
+  # When false: require that HRI is NOT installed (used after uninstall).
+  expect-installed:
+    description: "Whether HRI is expected to be installed (true) or removed (false)."
+    required: false
+    default: "true"
+
+  # If true and expect-installed=true, we check that HRI packages exist as pip dists.
+  # If false, we skip pip checks for HRI (maybe they’re pure ROS pkgs).
+  check-hri-pip:
+    description: "Require HRI to exist as pip distributions when installed."
+    required: false
+    default: "true"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Verify HRI ROS 2 packages
+      shell: bash
+      run: |
+        echo "Sourcing /opt/vulcanexus/${{ inputs.vulcanexus-distro }}/setup.bash"
+        source "/opt/vulcanexus/${{ inputs.vulcanexus-distro }}/setup.bash"
+
+        set -euo pipefail
+
+        EXPECT_INSTALLED="${{ inputs.expect-installed }}"
+
+        HRI_PKGS="hri_msgs hri_id_manager hri_face_detect hri_pose_detect hri_emotion_detect hri_detection_display hri_stt hri_tts"
+
+        if [ "$EXPECT_INSTALLED" = "true" ]; then
+          echo "Checking HRI ROS 2 packages are discoverable..."
+          for pkg in $HRI_PKGS; do
+            if ! ros2 pkg list | grep -x "$pkg" > /dev/null; then
+              echo "ERROR: Package '$pkg' not found in 'ros2 pkg list'"
+              exit 1
+            fi
+            echo "  - Found ROS 2 package: $pkg"
+          done
+
+          echo "Checking that HRI message types are available..."
+          ros2 interface show hri_msgs/msg/Audio > /dev/null
+          ros2 interface show hri_msgs/msg/NormalizedPointOfInterest2D > /dev/null || true
+        else
+          echo "Checking HRI ROS 2 packages are NOT discoverable (after uninstall)..."
+          for pkg in $HRI_PKGS; do
+            if ros2 pkg list | grep -x "$pkg" > /dev/null; then
+              echo "ERROR: Package '$pkg' is still present in 'ros2 pkg list' but should have been removed"
+              exit 1
+            fi
+            echo "  - Package not found (OK): $pkg"
+          done
+
+          echo "Checking that HRI message types are not available..."
+          if ros2 interface show hri_msgs/msg/Audio > /dev/null; then
+            echo "ERROR: HRI message type 'hri_msgs/msg/Audio' found after uninstallation"
+            exit 1
+          fi
+          if ros2 interface show hri_msgs/msg/NormalizedPointOfInterest2D > /dev/null; then
+            echo "ERROR: HRI message type 'hri_msgs/msg/NormalizedPointOfInterest2D' found after uninstallation"
+            exit 1
+          fi
+        fi
+
+    - name: HRI Python distributions (present / absent, optional)
+      if: ${{ inputs.check-hri-pip == 'true' }}
+      shell: bash
+      run: |
+        echo "Sourcing /opt/vulcanexus/${{ inputs.vulcanexus-distro }}/setup.bash"
+        source "/opt/vulcanexus/${{ inputs.vulcanexus-distro }}/setup.bash"
+
+        set -euo pipefail
+
+        PYTHON_BIN="${{ inputs.python-bin }}"
+        EXPECT_INSTALLED="${{ inputs.expect-installed }}"
+        HRI_PKGS="hri_msgs hri_id_manager hri_face_detect hri_pose_detect hri_emotion_detect hri_detection_display hri_stt hri_tts"
+
+        echo "Using Python: $(command -v "$PYTHON_BIN")"
+
+        if [ "$EXPECT_INSTALLED" = "true" ]; then
+          echo "Checking that HRI Python distributions exist (pip)..."
+          for pkg in $HRI_PKGS; do
+            if ! "$PYTHON_BIN" -m pip show "$pkg" > /dev/null 2>&1; then
+              echo "ERROR: pip cannot find distribution '$pkg' for $PYTHON_BIN"
+              exit 1
+            fi
+            echo "  - pip distribution found: $pkg"
+          done
+        else
+          echo "Checking that HRI Python distributions do NOT exist (pip) after uninstall..."
+          for pkg in $HRI_PKGS; do
+            if "$PYTHON_BIN" -m pip show "$pkg" > /dev/null 2>&1; then
+              echo "ERROR: pip distribution '$pkg' still present in $PYTHON_BIN after uninstall"
+              exit 1
+            fi
+            echo "  - pip distribution not found (OK): $pkg"
+          done
+        fi
+
+    - name: Verify Python dependencies (pip + import)
+      shell: bash
+      run: |
+        echo "Sourcing /opt/vulcanexus/${{ inputs.vulcanexus-distro }}/setup.bash"
+        source "/opt/vulcanexus/${{ inputs.vulcanexus-distro }}/setup.bash"
+
+        set -euo pipefail
+
+        PYTHON_BIN="${{ inputs.python-bin }}"
+        EXPECT_INSTALLED="${{ inputs.expect-installed }}"
+
+        BASE_PKGS="ultralytics torch mediapipe"
+
+        echo "Using Python: $(command -v "$PYTHON_BIN")"
+        echo "Checking Python packages via pip + import: $BASE_PKGS"
+
+        for pkg in $BASE_PKGS; do
+          if [ "$EXPECT_INSTALLED" = "true" ]; then
+            if ! "$PYTHON_BIN" -c "import $pkg" > /dev/null 2>&1; then
+              echo "ERROR: Python package '$pkg' not found"
+              exit 1
+            fi
+            echo "  - Found Python package: $pkg"
+          else
+            if "$PYTHON_BIN" -c "import $pkg" > /dev/null 2>&1; then
+              echo "ERROR: Python package '$pkg' found after uninstallation"
+              exit 1
+            fi
+            echo "  - Not found Python package: $pkg"
+          fi
+        done
+
+        if [ "$EXPECT_INSTALLED" = "true" ]; then
+          echo "Python packages sanity check passed"
+        else
+          echo "Post-uninstall Python package checks finished"
+        fi
