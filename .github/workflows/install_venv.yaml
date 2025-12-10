@@ -1,0 +1,94 @@
+name: Test Install script with virtual environment
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to install from'
+        required: false
+        default: 'main'
+      vulcanexus_distro:
+        description: 'Vulcanexus distro to install to. It refers to the vulcanexus branch name'
+        required: false
+        default: 'kilted'
+
+  pull_request:
+    branches:
+      - 'main'
+      - 'kilted'
+
+  push:
+    branches:
+      - 'main'
+      - 'kilted'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  install_script_venv:
+    runs-on: ubuntu-latest
+
+    env:
+      BRANCH: ${{ inputs.branch || github.head_ref || github.ref_name }}
+      VULCANEXUS_DISTRO: ${{ inputs.vulcanexus_distro || 'kilted' }}
+
+    steps:
+    - name: Free disk space
+      uses: eProsima/eProsima-CI/ubuntu/free_disk_space@v0
+
+    - name: Checkout repository
+      uses: eProsima/eProsima-CI/external/checkout@v0
+      with:
+        path: src/agile-hri
+        ref: ${{ env.BRANCH }}
+
+    - name: Install apt dependencies
+      uses: eProsima/eProsima-CI/ubuntu/install_apt_packages@v0
+      with:
+        packages: wget python3-venv
+        update: false
+        upgrade: false
+
+    - name: Get Vulcanexus Script
+      shell: bash
+      run: |
+        wget -qO linux_binary_installation.bash https://raw.githubusercontent.com/eProsima/vulcanexus/refs/heads/${{ env.VULCANEXUS_DISTRO }}/docs/resources/scripts/linux_binary_installation.bash
+        chmod +x ./linux_binary_installation.bash
+
+    - name: Run Vulcanexus Script
+      shell: bash
+      run: |
+        ./linux_binary_installation.bash
+
+    - name: Create Python virtual environment
+      shell: bash
+      run: |
+        python3 -m venv hri_venv
+
+    - name: Run install script
+      shell: bash
+      run: |
+        source /opt/vulcanexus/${{ env.VULCANEXUS_DISTRO }}/setup.bash && bash src/agile-hri/install_hri.sh -y --venv hri_venv
+
+    - name: Verify HRI installation
+      uses: eProsima/agile-hri/.github/verify_hri@main
+      with:
+        vulcanexus-distro: ${{ env.VULCANEXUS_DISTRO }}
+        python-bin: hri_venv/bin/python3
+        expect-installed: true
+        check-hri-pip: true
+
+    - name: Clean up HRI installation
+      shell: bash
+      run: |
+        bash src/agile-hri/install_hri.sh --uninstall -y --venv hri_venv
+
+    - name: Verify HRI uninstallation
+      uses: eProsima/agile-hri/.github/verify_hri@main
+      with:
+        vulcanexus-distro: ${{ env.VULCANEXUS_DISTRO }}
+        python-bin: hri_venv/bin/python3
+        expect-installed: false
+        check-hri-pip: true

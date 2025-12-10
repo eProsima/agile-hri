@@ -1,0 +1,73 @@
+name: Test Install script in docker
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to install from'
+        required: false
+        default: 'main'
+      vulcanexus_distro:
+        description: 'Vulcanexus distro to install to. It refers to the vulcanexus branch name'
+        required: false
+        default: 'kilted'
+
+  pull_request:
+    branches:
+      - 'main'
+      - 'kilted'
+
+  push:
+    branches:
+      - 'main'
+      - 'kilted'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  install_script_in_docker:
+    runs-on: ubuntu-latest
+    container:
+      image: eprosima/vulcanexus:${{ inputs.vulcanexus_distro || 'kilted' }}
+
+    env:
+      BRANCH: ${{ inputs.branch || github.head_ref || github.ref_name }}
+      VULCANEXUS_DISTRO: ${{ inputs.vulcanexus_distro || 'kilted' }}
+
+    steps:
+    # We do not free disk space because every action runs in a fresh container.
+    # In case of disk space issues, we should consider manually call docker commands instead of using
+    # GitHub container support, in which case we can call the 'free_disk_space' action.
+    - name: Checkout repository
+      uses: eProsima/eProsima-CI/external/checkout@v0
+      with:
+        path: src/agile-hri
+        ref: ${{ env.BRANCH }}
+
+    - name: Run install script
+      shell: bash
+      run: |
+        source /opt/vulcanexus/${{ env.VULCANEXUS_DISTRO }}/setup.bash && bash src/agile-hri/install_hri.sh -y
+
+    - name: Verify HRI installation
+      uses: eProsima/agile-hri/.github/verify_hri@main
+      with:
+        vulcanexus-distro: ${{ env.VULCANEXUS_DISTRO }}
+        python-bin: python3
+        expect-installed: true
+        check-hri-pip: true
+
+    - name: Clean up HRI installation
+      shell: bash
+      run: |
+        bash src/agile-hri/install_hri.sh --uninstall -y
+
+    - name: Verify HRI uninstallation
+      uses: eProsima/agile-hri/.github/verify_hri@main
+      with:
+        vulcanexus-distro: ${{ env.VULCANEXUS_DISTRO }}
+        python-bin: python3
+        expect-installed: false
+        check-hri-pip: true
