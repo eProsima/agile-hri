@@ -52,7 +52,7 @@ jobs:
         source /opt/vulcanexus/${{ env.VULCANEXUS_DISTRO }}/setup.bash && bash src/agile-hri/install_hri.sh -y
 
     - name: Verify HRI installation
-      uses: eProsima/agile-hri/.github/verify_hri@main
+      uses: eProsima/agile-hri/.github/verify_hri@fix_verification_ci
       with:
         vulcanexus-distro: ${{ env.VULCANEXUS_DISTRO }}
         python-bin: python3
@@ -65,7 +65,7 @@ jobs:
         bash src/agile-hri/install_hri.sh --uninstall -y
 
     - name: Verify HRI uninstallation
-      uses: eProsima/agile-hri/.github/verify_hri@main
+      uses: eProsima/agile-hri/.github/verify_hri@fix_verification_ci
       with:
         vulcanexus-distro: ${{ env.VULCANEXUS_DISTRO }}
         python-bin: python3

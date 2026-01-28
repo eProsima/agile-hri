@@ -335,9 +335,15 @@ install()
         echo "Cloning Vulcanexus HRI packages into $HRI_ROS_WS/src ..."
         git clone -b "$VULCANEXUS_DISTRO" https://github.com/eProsima/agile-hri.git
 
+        echo "Cmake version is: $(cmake --version | head -n 1)"
         echo "Building ROS2 workspace at $HRI_ROS_WS ..."
         cd "$HRI_ROS_WS"
-        "$PYTHON_BIN" -m colcon build
+        "$PYTHON_BIN" -m colcon build --packages-up-to vulcanexus_hri_cpp --event-handlers=console_direct+ --cmake-args -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_VERBOSE_MAKEFILE=ON || true
+        ls -R "$HRI_ROS_WS"/install/hri_msgs/
+        cat "$HRI_ROS_WS"/build/vulcanexus_hri_cpp/compile_commands.json
+        echo "Reached build end."
+        "$PYTHON_BIN" -m colcon graph
+        return 1
 
         echo "Installing HRI packages..."
         $SUDO mkdir -p "${INSTALLATION_PATH}/share"
