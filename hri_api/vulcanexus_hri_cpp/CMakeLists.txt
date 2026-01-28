@@ -33,6 +33,12 @@ find_package(hri_msgs REQUIRED)
 # Targets
 set(LIBRARY_NAME "hri")
 ament_auto_add_library(${LIBRARY_NAME} SHARED DIRECTORY src/hri)
+ament_target_dependencies(${LIBRARY_NAME}
+  PUBLIC
+    rclcpp
+    geometry_msgs
+    hri_msgs
+)
 target_link_libraries(${LIBRARY_NAME} magic_enum::magic_enum)
 
 option(COMPILE_EXAMPLE "Build example" ON)
