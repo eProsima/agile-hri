@@ -40,6 +40,12 @@ jobs:
     # We do not free disk space because every action runs in a fresh container.
     # In case of disk space issues, we should consider manually call docker commands instead of using
     # GitHub container support, in which case we can call the 'free_disk_space' action.
+
+    - name: Get minimum supported version of CMake
+      uses: eProsima/eProsima-CI/external/get-cmake@v0
+      with:
+        cmakeVersion: '3.28.3'
+
     - name: Checkout repository
       uses: eProsima/eProsima-CI/external/checkout@v0
       with:
