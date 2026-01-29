@@ -67,6 +67,18 @@ jobs:
       run: |
         ./linux_binary_installation.bash
 
+    - name: Print versions
+      shell: bash
+      run: |
+        echo "===== CORE BINARIES ====="
+        for x in cmake ctest make ninja gcc g++ clang clang++; do
+          if command -v "$x" >/dev/null 2>&1; then
+            echo "--- $x ---"
+            command -v "$x"
+            "$x" --version 2>&1 | head -n 3
+          fi
+        done
+
     - name: Run install script
       shell: bash
       run: |

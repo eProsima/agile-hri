@@ -41,16 +41,23 @@ jobs:
     # In case of disk space issues, we should consider manually call docker commands instead of using
     # GitHub container support, in which case we can call the 'free_disk_space' action.
 
-    - name: Get minimum supported version of CMake
-      uses: eProsima/eProsima-CI/external/get-cmake@v0
-      with:
-        cmakeVersion: '3.28.3'
-
     - name: Checkout repository
       uses: eProsima/eProsima-CI/external/checkout@v0
       with:
         path: src/agile-hri
         ref: ${{ env.BRANCH }}
+
+    - name: Print versions
+      shell: bash
+      run: |
+        echo "===== CORE BINARIES ====="
+        for x in cmake ctest make ninja gcc g++ clang clang++; do
+          if command -v "$x" >/dev/null 2>&1; then
+            echo "--- $x ---"
+            command -v "$x"
+            "$x" --version 2>&1 | head -n 3
+          fi
+        done
 
     - name: Run install script
       shell: bash

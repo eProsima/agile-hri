@@ -273,6 +273,7 @@ install()
         printf '%s\n' "${APT_NEW_PACKAGES[@]}" | $SUDO tee "$APT_STATE_FILE" >/dev/null
         echo "Recorded APT packages installed by this script in $APT_STATE_FILE"
     fi
+    echo "Installed APT packages: ${APT_NEW_PACKAGES[*]:-None}"
 
     # -------------------- Python HRI dependencies installation --------------------
     if [[ -z "${VULCANEXUS_DISTRO:-}" ]]; then
@@ -321,6 +322,8 @@ install()
         printf '%s\n' "${PIP_NEW_PACKAGES[@]}" > "$PIP_STATE_FILE"
         echo "Recorded pip packages installed by this script in $PIP_STATE_FILE"
     fi
+    echo "Installed pip packages:"
+    cat "$PIP_STATE_FILE"
 
     rm -f "$TMP_REQ"
 
@@ -336,6 +339,16 @@ install()
         git clone -b "$VULCANEXUS_DISTRO" https://github.com/eProsima/agile-hri.git
 
         echo "Cmake version is: $(cmake --version | head -n 1)"
+
+        echo "===== COLCON ====="
+        colcon version-check
+
+        echo "===== ROS 2 / AMENT PACKAGES ====="
+        python3 -c "import ament_package; print('ament_package', ament_package.__version__, ament_package.__file__)" 2>/dev/null || true
+        python3 -c "import ament_index_python; print('ament_index_python', ament_index_python.__version__, ament_index_python.__file__)" 2>/dev/null || true
+        python3 -c "import rosidl_parser; print('rosidl_parser', rosidl_parser.__version__, rosidl_parser.__file__)" 2>/dev/null || true
+        python3 -c "import rosidl_adapter; print('rosidl_adapter', rosidl_adapter.__version__, rosidl_adapter.__file__)" 2>/dev/null || true
+
         echo "Building ROS2 workspace at $HRI_ROS_WS ..."
         cd "$HRI_ROS_WS"
         "$PYTHON_BIN" -m colcon build --packages-up-to vulcanexus_hri_cpp --event-handlers=console_direct+ --cmake-args -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_VERBOSE_MAKEFILE=ON || true
