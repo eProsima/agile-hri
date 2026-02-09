@@ -110,4 +110,4 @@ ros2 launch hri_pose_detect pose_detect.launch.py use_depth:=True use_time_offse
 
 ## Example
 
-For an example of usage check [Vulcanexus HRI Tutorial](https://docs.vulcanexus.org/en/latest/rst/tutorials/hri/pose_detect/pose_detect.html).
+For an example of usage check [Vulcanexus HRI Tutorial](https://docs.vulcanexus.org/en/latest/rst/tutorials/hri/pose_detect.html).
