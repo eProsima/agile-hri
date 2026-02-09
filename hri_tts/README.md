@@ -102,7 +102,7 @@ Nonetheless, a **Nvidia GPU is recommended** to speed up inferences.
 
 ## Example
 
-For an example of usage check [Vulcanexus HRI Tutorial](https://docs.vulcanexus.org/en/latest/rst/tutorials/hri/tts/tts.html).
+For an example of usage check [Vulcanexus HRI Tutorial](https://docs.vulcanexus.org/en/latest/rst/tutorials/hri/tts.html).
 
 To list all available speakers and playback devices in the system run:
 

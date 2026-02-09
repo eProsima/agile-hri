@@ -69,7 +69,7 @@ ros2 launch hri_stt stt_server.launch.py microphone:="Your microphone name"
 
 ## Example
 
-For an example of usage check [Vulcanexus HRI Tutorial](https://docs.vulcanexus.org/en/latest/rst/tutorials/hri/stt/stt.html).
+For an example of usage check [Vulcanexus HRI Tutorial](https://docs.vulcanexus.org/en/latest/rst/tutorials/hri/stt.html).
 
 To list all available microphones in the system run:
 

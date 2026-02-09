@@ -61,4 +61,4 @@ ros2 launch hri_emotion_detect emotion_face_detect.launch.py rgb_camera_topic:=$
 
 ## Example
 
-For an example of usage check [Vulcanexus HRI Tutorial](https://docs.vulcanexus.org/en/latest/rst/tutorials/hri/emotion_detect/emotion_detect.html).
+For an example of usage check [Vulcanexus HRI Tutorial](https://docs.vulcanexus.org/en/latest/rst/tutorials/hri/emotion_detect.html).

@@ -88,4 +88,4 @@ ros2 launch hri_face_detect face_detect.launch.py rgb_camera_topic:=<input camer
 
 ## Example
 
-For an example of usage check [Vulcanexus HRI Tutorial](https://docs.vulcanexus.org/en/latest/rst/tutorials/hri/face_detect/face_detect.html).
+For an example of usage check [Vulcanexus HRI Tutorial](https://docs.vulcanexus.org/en/latest/rst/tutorials/hri/face_detect.html).
