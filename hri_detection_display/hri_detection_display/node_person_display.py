@@ -20,17 +20,21 @@ import rclpy
 from hri_msgs.msg import Skeleton2D, Skeleton2DList, Face2DList, Expression
 from rcl_interfaces.msg import ParameterDescriptor, SetParametersResult
 from sensor_msgs.msg import Image
-import rclpy.parameter
 
 import cv2 as cv
-from cv_bridge import CvBridge
+import numpy as np
 from threading import Lock
-from typing import List
+from typing import List, Optional
 
 from hri_detection_display.PersonDetectionTracker import PersonDetection
 
-# Max number of calls to the main_process (timer_loop) that a body/face can be without updates
-# before it is not tracked anymore
+try:
+    from cv_bridge import CvBridge
+except ImportError:
+    CvBridge = None
+
+
+# Max number of calls to the timer callback that a body/face can miss before being removed
 MAX_ITERATIONS_RETENTION = 15
 
 # Time margin to consider a body/face as detected again
@@ -71,13 +75,13 @@ _face_landmarks = [
 
 
 def bound(val, min_val, max_val):
-    """Bound a value between min_val and max_val."""
+    """Bound a value between lower and upper limits."""
     return max(min_val, min(val, max_val))
 
 
 def normalized_to_pixel_coordinates(
         x_norm: float, y_norm: float, image_width: int, image_height: int) -> (int, int):
-    """Convert normalized coordinates to pixel coordinates."""
+    """Convert normalized coordinates [0..1] to bounded image pixel coordinates."""
     x_px = bound(int(x_norm * image_width), 0, image_width - 1)
     y_px = bound(int(y_norm * image_height), 0, image_height - 1)
     return x_px, y_px
@@ -85,15 +89,13 @@ def normalized_to_pixel_coordinates(
 
 def normalized_to_pixel_coordinates_list(
         coords: List[float], image_width: int, image_height: int) -> (int, int):
-    """Convert normalized coordinates to pixel coordinates but coords is received as a list."""
+    """Convert a coordinate list `[x_norm, y_norm]` into pixel coordinates."""
     return normalized_to_pixel_coordinates(coords[0], coords[1], image_width, image_height)
 
 
 def point_not_null(point):
-    """Check if a point is not null."""
-    if point.x != 0 and point.y != 0:
-        return True
-    return False
+    """Return True when a skeleton point contains non-zero coordinates."""
+    return point.x != 0 and point.y != 0
 
 
 class NodePersonDisplay(Node):
@@ -102,8 +104,7 @@ class NodePersonDisplay(Node):
     If a person has a matched body and face (same ID), it will be displayed in a different color.
     """
     def __init__(self):
-
-        # Initialize node
+        """Initialize parameters, subscriptions, publishers and the timer loop."""
         super().__init__('hri_person_display')
 
         self.declare_parameter(
@@ -120,26 +121,41 @@ class NodePersonDisplay(Node):
                 description='Display mode. Options: "body", "face", "both", "all". Default: "all".'))
         self.declare_parameter(
             'allow_half_body', True, ParameterDescriptor(
-                description='Allow displaying bodies that are not entirely visible. \
-                      A body is considered whole if at least the head and one shoulder, hip and knee are visible.'))
+                description='Allow displaying bodies that are not entirely visible. '
+                            'A body is considered whole if at least the head and one shoulder, hip and knee are visible.'))
         self.declare_parameter(
             'allow_back_turned', True, ParameterDescriptor(
                 description='Allow displaying bodies that are not facing the camera.'))
+        self.declare_parameter(
+            'no_signal_timeout', 2.0, ParameterDescriptor(
+                description='Seconds without image frames before rendering "No signal".'))
 
         self.param_change_callback = self.add_on_set_parameters_callback(self.parameter_callback)
 
         # Initialize variables
         self.dict_lock = Lock()  # Lock to protect the persons_ dictionary (persons detections)
         self.image_lock = Lock()  # Lock to protect the cv_image_marks variable (image to be displayed)
+
         self.processing_rate = self.get_parameter('processing_rate').value
         self.display_mode = self.get_parameter('display_mode').value
         self.allow_half_body = self.get_parameter('allow_half_body').value
         self.allow_back_turned = self.get_parameter('allow_back_turned').value
+        self.no_signal_timeout = float(self.get_parameter('no_signal_timeout').value)
         self.persons_ = {}
         self.image_header = None
         self.image_width = 0
         self.image_height = 0
-        self.reception_start_proc_time = self.get_clock().now()
+        self.start_time = self.get_clock().now()
+        self.last_image_time = None
+        self.cv_image_raw: Optional[np.ndarray] = None
+        self.cv_image_marks: Optional[np.ndarray] = None
+
+        if CvBridge is not None:
+            self.bridge = CvBridge()
+        else:
+            self.bridge = None
+            self.get_logger().warning(
+                'cv_bridge is not installed. Falling back to basic numpy conversion for bgr8/rgb8/mono8.')
 
         # We want to plot both bodies and faces, so we cannot rely on TimeSynchronizers because:
         # - Running the display with just one detector will block the other one
@@ -177,16 +193,17 @@ class NodePersonDisplay(Node):
 
         # Convert ROS Image message to OpenCV image
         with self.image_lock:
-            self.cv_image_marks = CvBridge().imgmsg_to_cv2(msg, 'bgr8')
+            self.cv_image_raw = CvBridge().imgmsg_to_cv2(msg, 'bgr8')
 
     def bodies_callback(self, msg: Skeleton2DList):
-        """Callback to save the body detections data."""
+        """Update tracked person body data from `/humans/bodies`."""
         for roi_msg, ske_msg, depth_msg in zip(msg.bboxes, msg.skeletons, msg.depths):
             if roi_msg.key != ske_msg.key:
-                self.get_logger().error(f"Body id mismatch: [{roi_msg.key}] != [{ske_msg.key}]")
+                self.get_logger().error(f'Body id mismatch: [{roi_msg.key}] != [{ske_msg.key}]')
                 continue
-            elif roi_msg.key == "":
+            if roi_msg.key == '':
                 continue
+
             key = roi_msg.key
             # Handle ROIs
             position = [roi_msg.xmin, roi_msg.ymin, roi_msg.xmax, roi_msg.ymax]
@@ -205,13 +222,14 @@ class NodePersonDisplay(Node):
                 self.update_times(key, body=True)
 
     def faces_callback(self, msg: Face2DList):
-        """Callback to save the face detections data."""
+        """Update tracked person face data from `/humans/faces`."""
         for roi_msg, ldmks in zip(msg.bboxes, msg.landmarks):
             if roi_msg.key != ldmks.key:
-                self.get_logger().error(f"Face id mismatch: [{roi_msg.key}] != [{ldmks.key}]")
+                self.get_logger().error(f'Face id mismatch: [{roi_msg.key}] != [{ldmks.key}]')
                 continue
-            elif roi_msg.key == "":
+            if roi_msg.key == '':
                 continue
+
             key = roi_msg.key
             # Handle ROIs
             position = [roi_msg.xmin, roi_msg.ymin, roi_msg.xmax, roi_msg.ymax]
@@ -235,26 +253,106 @@ class NodePersonDisplay(Node):
             return
 
         self.reception_start_proc_time = self.get_clock().now()
+        self.update_tracking_status()
 
+        timed_out = self.signal_timed_out()
+        if timed_out:
+            if not self.no_signal_active:
+                self.no_signal_active = True
+                self.get_logger().warning(
+                    f"No frames received on '{self.image_topic}' for {self.no_signal_timeout:.2f}s.")
+            frame = self.no_signal_frame()
+        else:
+            if self.no_signal_active:
+                self.no_signal_active = False
+                self.get_logger().info('Image signal restored.')
+            frame = self.render_detection_frame()
+            if frame is None:
+                frame = self.no_signal_frame()
+
+        self.publish_detection(frame, self.image_header)
+
+    def signal_timed_out(self) -> bool:
+        """Return True when no image has been received within `no_signal_timeout`."""
+        if self.no_signal_timeout <= 0.0:
+            return False
+        now = self.get_clock().now().nanoseconds
+        reference = self.start_time if self.last_image_time is None else self.last_image_time
+        return (now - reference.nanoseconds) > self.no_signal_timeout * 1e9
+
+    def no_signal_frame(self) -> np.ndarray:
+        """Build a fallback frame when no messages are received."""
+        with self.image_lock:
+            base = None if self.cv_image_raw is None else self.cv_image_raw.copy()
+
+        if base is None:
+            height = max(240, self.window_height)
+            width = max(320, self.window_width)
+            base = np.zeros((height, width, 3), dtype=np.uint8)
+        else:
+            cv.rectangle(base, (0, 0), (base.shape[1] - 1, base.shape[0] - 1), BGR_RED, 2)
+
+        cv.putText(base, 'No msgs received', (30, 60), cv.FONT_HERSHEY_SIMPLEX, 1.5, BGR_RED, 3)
+        cv.putText(base, f'Topic: {self.image_topic}', (30, 105), cv.FONT_HERSHEY_SIMPLEX, 0.8, BGR_WHITE, 2)
+        return base
+
+    def render_detection_frame(self) -> Optional[np.ndarray]:
+        """Render person overlays over the latest frame according to display filters."""
+        with self.image_lock:
+            if self.cv_image_raw is None:
+                return None
+            self.cv_image_marks = self.cv_image_raw.copy()
+            self.image_height, self.image_width = self.cv_image_marks.shape[:2]
+
+        ids_print = ''
+        with self.dict_lock:
+            for person_id, person in self.persons_.items():
+                if person.online and self.should_display_person(person):
+                    if person.matched and (self.display_mode == 'both' or self.display_mode == 'all'):
+                        self.draw_body(person_id, c_no_hand=BGR_DARK_GREEN, c_hand_raised=BGR_RED, c_ske=BGR_GREY)
+                        self.draw_face(person_id, BGR_TEAL, matched=True)
+                    elif person.body_position != [0, 0, 0, 0] and (self.display_mode == 'body' or self.display_mode == 'all'):
+                        self.draw_body(person_id, c_no_hand=BGR_BLUE, c_hand_raised=BGR_RED, c_ske=BGR_GREY)
+                    elif person.face_position != [0, 0, 0, 0] and (self.display_mode == 'face' or self.display_mode == 'all'):
+                        self.draw_face(person_id, BGR_BLUE)
+
+                    ids_print += f'[{person_id}] | '
+
+        processing_duration_ms = (self.get_clock().now() - self.reception_start_proc_time).nanoseconds / 1e6
+        self.get_logger().debug(f'Displaying: {ids_print}in {processing_duration_ms} ms.')
+        return self.cv_image_marks
+
+    # Publish detection for a given person
+    def publish_detection(self, frame: np.ndarray, header):
+        """Publish the detections of the persons in the image."""
+        ids_print = ''
+
+        # Convert OpenCV image back to ROS Image message
+        image_marks = CvBridge().cv2_to_imgmsg(frame, "bgr8")
+        image_marks.header = header
+        self.detection_pub_.publish(image_marks)
+
+        processing_duration_ms = (
+            self.get_clock().now() - self.reception_start_proc_time).nanoseconds / 1e6
+        self.get_logger().debug(f"Displaying: {ids_print}in {processing_duration_ms}.")
+
+
+    def update_tracking_status(self):
+        """Update online/matched status and remove stale tracked persons."""
         time_check = self.get_clock().now().nanoseconds
         should_delete = []
         # Check times
         with self.dict_lock:
-            for id, person in self.persons_.items():
-                # Only a face or a body is required to be considered online.
-                body_detected = True
-                face_detected = True
-                if time_check - person.times["body"].nanoseconds > TIME_MARGIN_DETECTION * 1e9:
-                    body_detected = False
+            for person_id, person in self.persons_.items():
+                body_detected = time_check - person.times['body'].nanoseconds <= TIME_MARGIN_DETECTION * 1e9
+                face_detected = time_check - person.times['face'].nanoseconds <= TIME_MARGIN_DETECTION * 1e9
+
+                if not body_detected:
                     person.body_position = [0, 0, 0, 0]
-                if time_check - person.times["face"].nanoseconds > TIME_MARGIN_DETECTION * 1e9:
-                    face_detected = False
+                if not face_detected:
                     person.face_position = [0, 0, 0, 0]
 
-                if body_detected and face_detected:
-                    person.matched = True
-                else:
-                    person.matched = False
+                person.matched = body_detected and face_detected
                 if body_detected or face_detected:
                     person.online = True
                     self.get_logger().debug(f"Person {id} is online.")
@@ -263,93 +361,87 @@ class NodePersonDisplay(Node):
                 else:
                     person.online = False
                     person.frames_since_last_detection += 1
-                    self.get_logger().debug(f"Person {id} not seen for: {self.persons_[id].frames_since_last_detection} frames.")
-                    if self.persons_[id].frames_since_last_detection > MAX_ITERATIONS_RETENTION:
-                        should_delete.append(id)
-                if time_check - person.times["emotion"].nanoseconds > TIME_MARGIN_DETECTION * 1e9:
-                    person.emotion = ""
+                    if person.frames_since_last_detection > MAX_ITERATIONS_RETENTION:
+                        should_delete.append(person_id)
 
-            for id in should_delete:
-                self.get_logger().debug(f"Removing person {id}.")
-                del self.persons_[id]
-            # Publish detection
-            self.publish_detection(self.image_header)
+                if time_check - person.times['emotion'].nanoseconds > TIME_MARGIN_DETECTION * 1e9:
+                    person.emotion = ''
 
-    def update_position(self, id, position, body=False, face=False):
-        """Updates the position of the given body/face"""
-        if id not in self.persons_:
-            self.get_logger().debug(f"Adding person with key {id}.")
-            self.persons_[id] = PersonDetection()
+            for person_id in should_delete:
+                self.get_logger().debug(f'Removing person {person_id}.')
+                del self.persons_[person_id]
+
+    def update_position(self, person_id, position, body=False, face=False):
+        """Update body or face ROI for a person id."""
+        if person_id not in self.persons_:
+            self.get_logger().debug(f'Adding person with key {person_id}.')
+            self.persons_[person_id] = PersonDetection()
 
         if body:
-            self.persons_[id].body_position = position
+            self.persons_[person_id].body_position = position
         elif face:
-            self.persons_[id].face_position = position
+            self.persons_[person_id].face_position = position
 
-    def update_score(self, id, score, body=False, face=False):
-        """Updates the score of the given body/face"""
-        if id not in self.persons_:
-            self.get_logger().error(f"Body id [{id}] not found when assigning score.")
-        else:
-            if body:
-                self.persons_[id].body_score = score
-            elif face:
-                self.persons_[id].face_score = score
+    def update_score(self, person_id, score, body=False, face=False):
+        """Update body or face confidence score for a person id."""
+        if person_id not in self.persons_:
+            self.get_logger().error(f'Body id [{person_id}] not found when assigning score.')
+            return
+        if body:
+            self.persons_[person_id].body_score = score
+        elif face:
+            self.persons_[person_id].face_score = score
 
     def update_expression(self, face_id, expression):
-        """Updates the emotion of the given face"""
+        """Update expression label for a tracked face id."""
         if face_id not in self.persons_:
-            self.get_logger().warning(f"Face id [{face_id}] not found when assigning expression.")
+            self.get_logger().warning(f'Face id [{face_id}] not found when assigning expression.')
             return
-
         self.persons_[face_id].emotion = expression
 
     def update_depth(self, body_id, depth):
-        """Updates the depth of the given body"""
+        """Update depth value for a tracked body id."""
         if body_id not in self.persons_:
-            self.get_logger().warning(f"Body id [{body_id}] not found when assigning depth.")
+            self.get_logger().warning(f'Body id [{body_id}] not found when assigning depth.')
             return
-
         self.persons_[body_id].depth = depth
 
-    def update_landmarks(self, id, msg, body=False, face=False):
-        """Update the landmarks of the given body/face."""
+    def update_landmarks(self, person_id, msg, body=False, face=False):
+        """Update body skeleton landmarks or face landmarks for a person id."""
         if body and face:
-            self.get_logger().error("Cannot update both body and face landmarks at the same time.")
+            self.get_logger().error('Cannot update both body and face landmarks at the same time.')
             return
-        elif body:
-            self.persons_[id].landmarks = msg.skeleton
-        elif face:
-            self.persons_[id].face_landmarks = msg.landmarks
-
-    def update_times(self, id, body=False, face=False, emotion=False, voice=False):
-        """Updates the last time update of the given body/face/emotion/voice"""
         if body:
-            self.persons_[id].times["body"] = self.get_clock().now()
+            self.persons_[person_id].landmarks = msg.skeleton
+        elif face:
+            self.persons_[person_id].face_landmarks = msg.landmarks
+
+    def update_times(self, person_id, body=False, face=False, emotion=False, voice=False):
+        """Update per-signal timestamps used for stale detection and cleanup."""
+        if body:
+            self.persons_[person_id].times['body'] = self.get_clock().now()
         if face:
-            self.persons_[id].times["face"] = self.get_clock().now()
+            self.persons_[person_id].times['face'] = self.get_clock().now()
         if emotion:
-            if id not in self.persons_:
-                self.get_logger().warning(f"ID [{id}] not found when assigning expression.")
+            if person_id not in self.persons_:
+                self.get_logger().warning(f'ID [{person_id}] not found when assigning expression.')
                 return
-            self.persons_[id].times["emotion"] = self.get_clock().now()
+            self.persons_[person_id].times['emotion'] = self.get_clock().now()
         if voice:
-            if id not in self.persons_:
-                self.get_logger().warning(f"ID [{id}] not found when assigning voice.")
+            if person_id not in self.persons_:
+                self.get_logger().warning(f'ID [{person_id}] not found when assigning voice.')
                 return
-            self.persons_[id].times["voice"] = self.get_clock().now()
+            self.persons_[person_id].times['voice'] = self.get_clock().now()
 
     def raise_hand(self, body_id, skeleton):
-        """Returns 'True' if a body is raising its left hand. 'False' otherwise."""
+        """Infer whether a person is raising the left hand."""
         if self.allow_back_turned:
-            self.get_logger().warning("Back turned is allowed. A hand will not be considered raised if no face is visible.", once=True)
+            self.get_logger().warning(
+                'Back turned is allowed. A hand will not be considered raised if no face is visible.', once=True)
         if self.persons_[body_id].facing == 0:
-            # If no point of the face is visible, hand raised will not be considered
             self.persons_[body_id].hand_raised = False
-            self.get_logger().debug(f"Hand not raised for body {body_id} because no face is visible.")
             return
 
-        # Use any point of the face, if visible, to check if the hand is raised
         face_ref = None
         for face_point in _face_landmarks:
             if point_not_null(skeleton[face_point]):
@@ -363,7 +455,7 @@ class NodePersonDisplay(Node):
             self.persons_[body_id].hand_raised = False
 
     def whole_body(self, body_id, skeleton):
-        """Returns 'True' if a full view of the body is available. 'False' otherwise."""
+        """Compute if enough joints are visible to consider the body as whole."""
         head_seen = False
         shoulder_seen = False
         hips_seen = False
@@ -385,29 +477,26 @@ class NodePersonDisplay(Node):
                 (skeleton[Skeleton2D.RIGHT_KNEE].x != 0 and skeleton[Skeleton2D.RIGHT_KNEE].y != 0):
             knees_seen = True
 
-        if head_seen and shoulder_seen and hips_seen and knees_seen:
-            self.persons_[body_id].whole_body = True
-        else:
-            self.persons_[body_id].whole_body = False
+        self.persons_[body_id].whole_body = head_seen and shoulder_seen and hips_seen and knees_seen
 
     def facing(self, body_id, skeleton):
-        """Returns 'True' if a body is facing the camera. 'False' otherwise."""
+        """Estimate whether the person is facing the camera using visible facial points."""
         face_points = 0
-        if (skeleton[Skeleton2D.NOSE].x != 0 and skeleton[Skeleton2D.NOSE].y != 0):
+        if skeleton[Skeleton2D.NOSE].x != 0 and skeleton[Skeleton2D.NOSE].y != 0:
             face_points += 1
-        if (skeleton[Skeleton2D.LEFT_EAR].x != 0 and skeleton[Skeleton2D.LEFT_EAR].y != 0):
+        if skeleton[Skeleton2D.LEFT_EAR].x != 0 and skeleton[Skeleton2D.LEFT_EAR].y != 0:
             face_points += 1
-        if (skeleton[Skeleton2D.RIGHT_EAR].x != 0 and skeleton[Skeleton2D.RIGHT_EAR].y != 0):
+        if skeleton[Skeleton2D.RIGHT_EAR].x != 0 and skeleton[Skeleton2D.RIGHT_EAR].y != 0:
             face_points += 1
-        if (skeleton[Skeleton2D.LEFT_EYE].x != 0 and skeleton[Skeleton2D.LEFT_EYE].y != 0):
+        if skeleton[Skeleton2D.LEFT_EYE].x != 0 and skeleton[Skeleton2D.LEFT_EYE].y != 0:
             face_points += 1
-        if (skeleton[Skeleton2D.RIGHT_EYE].x != 0 and skeleton[Skeleton2D.RIGHT_EYE].y != 0):
+        if skeleton[Skeleton2D.RIGHT_EYE].x != 0 and skeleton[Skeleton2D.RIGHT_EYE].y != 0:
             face_points += 1
 
         self.persons_[body_id].facing = face_points
 
     def should_draw_ske_line(self, start_point, end_point, landmarks):
-        """Returns 'True' if the line between two points should be drawn. 'False' otherwise."""
+        """Return True when a skeleton line segment has valid endpoints."""
         return (landmarks[start_point] is not None and landmarks[end_point] is not None
                 and landmarks[start_point].x != 0 and landmarks[end_point].x != 0
                 and landmarks[start_point].y != 0 and landmarks[end_point].y != 0
@@ -415,7 +504,7 @@ class NodePersonDisplay(Node):
                 and landmarks[start_point].y is not None and landmarks[end_point].y is not None)
 
     def draw_skeleton(self, image, landmarks, color=BGR_GREY):
-        """Creates the cv2 lines for the skeleton of a body."""
+        """Draw skeleton connections on the destination image."""
         for start_point, end_point in _connections:
             if self.should_draw_ske_line(start_point, end_point, landmarks):
                 start_coords = [landmarks[start_point].x, landmarks[start_point].y]
@@ -426,34 +515,42 @@ class NodePersonDisplay(Node):
 
                 cv.line(image, start_pixel, end_pixel, color, 2)
 
-    def draw_body(self, id, c_ske=BGR_GREY, c_no_hand=BGR_BLUE, c_hand_raised=BGR_RED):
-        """Creates the cv2 boundary box for a body and its skeleton."""
+    def draw_body(self, person_id, c_ske=BGR_GREY, c_no_hand=BGR_BLUE, c_hand_raised=BGR_RED):
+        """Draw body ROI, score/depth label, and skeleton for one person."""
         # Ensure body_pos is in the correct format
-        pt1 = normalized_to_pixel_coordinates(self.persons_[id].body_position[0], self.persons_[id].body_position[1], self.image_width, self.image_height)
-        pt2 = normalized_to_pixel_coordinates(self.persons_[id].body_position[2], self.persons_[id].body_position[3], self.image_width, self.image_height)
-        score = str("{:.2f}".format(self.persons_[id].body_score * 100))
+        pt1 = normalized_to_pixel_coordinates(
+            self.persons_[person_id].body_position[0], self.persons_[person_id].body_position[1],
+            self.image_width, self.image_height)
+        pt2 = normalized_to_pixel_coordinates(
+            self.persons_[person_id].body_position[2], self.persons_[person_id].body_position[3],
+            self.image_width, self.image_height)
+        score = str('{:.2f}'.format(self.persons_[person_id].body_score * 100))
 
-        if self.persons_[id].hand_raised:
+        if self.persons_[person_id].hand_raised:
             cv.rectangle(self.cv_image_marks, pt1, pt2, c_hand_raised, 2)
         else:
             cv.rectangle(self.cv_image_marks, pt1, pt2, c_no_hand, 2)
 
-        text = "ID: " + id + " (" + score + "%)"
-        if self.persons_[id].depth != 0:
-            text += " Dist: " + str(self.persons_[id].depth)
+        text = 'ID: ' + person_id + ' (' + score + '%)'
+        if self.persons_[person_id].depth != 0:
+            text += ' Dist: ' + str(self.persons_[person_id].depth)
 
         cv.putText(self.cv_image_marks, text, (pt1[0], pt1[1] - 5), cv.FONT_HERSHEY_SIMPLEX, 0.5, BGR_BLACK)
 
         # Draw skeleton
-        if self.persons_[id].landmarks is not None:
-            self.draw_skeleton(self.cv_image_marks, self.persons_[id].landmarks, c_ske)
+        if self.persons_[person_id].landmarks is not None:
+            self.draw_skeleton(self.cv_image_marks, self.persons_[person_id].landmarks, c_ske)
 
-    def draw_face(self, id, color=BGR_BLUE, matched=False):
-        """Creates the cv2 boundary box for a face and adds the emotion if available."""
+    def draw_face(self, person_id, color=BGR_BLUE, matched=False):
+        """Draw face ROI and text labels for one person."""
         # Ensure body_pos is in the correct format
-        pt1 = normalized_to_pixel_coordinates(self.persons_[id].face_position[0], self.persons_[id].face_position[1], self.image_width, self.image_height)
-        pt2 = normalized_to_pixel_coordinates(self.persons_[id].face_position[2], self.persons_[id].face_position[3], self.image_width, self.image_height)
-        score = str("{:.2f}".format(self.persons_[id].face_score * 100))
+        pt1 = normalized_to_pixel_coordinates(
+            self.persons_[person_id].face_position[0], self.persons_[person_id].face_position[1],
+            self.image_width, self.image_height)
+        pt2 = normalized_to_pixel_coordinates(
+            self.persons_[person_id].face_position[2], self.persons_[person_id].face_position[3],
+            self.image_width, self.image_height)
+        score = str('{:.2f}'.format(self.persons_[person_id].face_score * 100))
 
         cv.rectangle(self.cv_image_marks, pt1, pt2, color, 2)
 
@@ -461,10 +558,12 @@ class NodePersonDisplay(Node):
             emotion_offset = 5
         else:
             emotion_offset = 20
-            cv.putText(self.cv_image_marks, "ID: " + id + " (" + score + "%)", (pt1[0], pt1[1] - 5), cv.FONT_HERSHEY_SIMPLEX, 0.5, BGR_BLACK)
+            cv.putText(self.cv_image_marks, 'ID: ' + person_id + ' (' + score + '%)',
+                       (pt1[0], pt1[1] - 5), cv.FONT_HERSHEY_SIMPLEX, 0.5, BGR_BLACK)
 
-        if self.persons_[id].emotion != "":
-            cv.putText(self.cv_image_marks, "Feeling: " + self.persons_[id].emotion, (pt1[0], pt1[1] - emotion_offset), cv.FONT_HERSHEY_SIMPLEX, 0.5, BGR_BLACK)
+        if self.persons_[person_id].emotion != '':
+            cv.putText(self.cv_image_marks, 'Feeling: ' + self.persons_[person_id].emotion,
+                       (pt1[0], pt1[1] - emotion_offset), cv.FONT_HERSHEY_SIMPLEX, 0.5, BGR_BLACK)
 
     # Publish detection for a given person
     def publish_detection(self, header):
@@ -496,47 +595,40 @@ class NodePersonDisplay(Node):
             self.get_logger().debug(f"Displaying: {ids_print}in {processing_duration_ms}.")
 
     def should_display_person(self, person):
-        """Returns 'True' if the body should be displayed because of params requirements. 'False' otherwise."""
-        half_body = False
-        facing = False
-        if self.allow_half_body:
-            half_body = True
-        else:
-            half_body = person.whole_body
-
-        if self.allow_back_turned:
-            facing = True
-        else:
-            facing = person.facing >= 4
-        self.get_logger().debug(f"Half body: {half_body}, Facing: {facing}.")
-
+        """Apply configured body visibility and facing filters for display."""
+        half_body = self.allow_half_body or person.whole_body
+        facing = self.allow_back_turned or person.facing >= 4
         return half_body and facing
 
     def parameter_callback(self, params):
-        """Callback to update parameters."""
+        """Handle runtime parameter updates with explicit validation and errors."""
         result = SetParametersResult()
-        result.successful = False
+        result.successful = True
+        errors = []
 
         for param in params:
             if param.name == 'processing_rate':
-                self.get_logger().error("Parameter 'processing_rate' cannot be changed at runtime.")
+                errors.append("'processing_rate' cannot be changed at runtime")
             elif param.name == 'display_mode':
                 if param.value in ['body', 'face', 'both', 'all']:
                     self.display_mode = param.value
-                    result.successful = True
-                    self.get_logger().info(f"Display mode set to: {self.display_mode}.")
+                    self.get_logger().info(f'Display mode set to: {self.display_mode}.')
                 else:
-                    self.get_logger().warning(f"Value {param.value} for parameter {param.name} not recognized. It should be 'body', 'face', 'both' or 'all'.")
+                    errors.append("'display_mode' must be one of: body, face, both, all")
             elif param.name == 'allow_half_body' and param.type_ == rclpy.Parameter.Type.BOOL:
                 self.allow_half_body = param.value
-                result.successful = True
-                self.get_logger().info(f"Allow_half_body set to: {self.allow_half_body}.")
+                self.get_logger().info(f'Allow_half_body set to: {self.allow_half_body}.')
             elif param.name == 'allow_back_turned' and param.type_ == rclpy.Parameter.Type.BOOL:
                 self.allow_back_turned = param.value
-                result.successful = True
-                self.get_logger().info(f"Allow_back_turned set to: {self.allow_back_turned}.")
+                self.get_logger().info(f'Allow_back_turned set to: {self.allow_back_turned}.')
+            elif param.name == 'no_signal_timeout' and param.type_ in [rclpy.Parameter.Type.DOUBLE, rclpy.Parameter.Type.INTEGER]:
+                self.no_signal_timeout = max(0.0, float(param.value))
             else:
-                self.get_logger().warning(f"Parameter {param.name} not recognized OR incorrect type.")
+                errors.append(f'Parameter {param.name} not recognized or incorrect type')
+
+        if errors:
+            result.successful = False
+            result.reason = '; '.join(errors)
 
         return result
 
@@ -549,7 +641,12 @@ def main(args=None):
     try:
         executor.spin()
     except (KeyboardInterrupt, ExternalShutdownException):
+        pass
+    finally:
+        node.destroy_window()
         node.destroy_node()
+        if rclpy.ok():
+            rclpy.shutdown()
 
 
 if __name__ == '__main__':
