@@ -118,8 +118,8 @@ def generate_launch_description():
 
     detection_display_node = Node(
         package='hri_detection_display',
-        executable='node_person_display',
-        name='node_person_display',
+        executable='node_person_viewer',
+        name='node_person_viewer',
         output='screen',
         parameters=[{'processing_rate': LaunchConfiguration('processing_rate'),
                      'display_mode': LaunchConfiguration('display_mode'),
@@ -136,7 +136,7 @@ def generate_launch_description():
                      'bring_to_front': LaunchConfiguration('bring_to_front'),
                      'keep_aspect_ratio': LaunchConfiguration('keep_aspect_ratio'),
                      'no_signal_timeout': LaunchConfiguration('no_signal_timeout')}],
-        arguments=['--ros-args', '--log-level', ['node_person_display:=', log_level]],
+        arguments=['--ros-args', '--log-level', ['node_person_viewer:=', log_level]],
     )
 
     return LaunchDescription([
