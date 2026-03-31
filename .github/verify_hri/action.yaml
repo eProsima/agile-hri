@@ -121,7 +121,7 @@ runs:
         PYTHON_BIN="${{ inputs.python-bin }}"
         EXPECT_INSTALLED="${{ inputs.expect-installed }}"
 
-        BASE_PKGS="ultralytics torch mediapipe"
+        BASE_PKGS="ultralytics pyaudio mediapipe"
 
         echo "Using Python: $(command -v "$PYTHON_BIN")"
         echo "Checking Python packages via pip + import: $BASE_PKGS"
