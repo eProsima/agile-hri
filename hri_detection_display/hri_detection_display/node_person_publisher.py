@@ -110,7 +110,9 @@ class NodePersonDisplay(Node):
         self.declare_parameter(
             'processing_rate', 30, ParameterDescriptor(
                 description='Best effort frequency for processing input images.'))
-
+        self.declare_parameter(
+            'image_topic', '/color/image_raw', ParameterDescriptor(
+                description='Input sensor_msgs/Image topic to visualize.'))
         # Displays modes:
         # - "body": Display only bodies
         # - "face": Display only faces
@@ -137,6 +139,7 @@ class NodePersonDisplay(Node):
         self.image_lock = Lock()  # Lock to protect the cv_image_marks variable (image to be displayed)
 
         self.processing_rate = self.get_parameter('processing_rate').value
+        self.image_topic = self.get_parameter('image_topic').value
         self.display_mode = self.get_parameter('display_mode').value
         self.allow_half_body = self.get_parameter('allow_half_body').value
         self.allow_back_turned = self.get_parameter('allow_back_turned').value
@@ -146,6 +149,7 @@ class NodePersonDisplay(Node):
         self.image_width = 0
         self.image_height = 0
         self.start_time = self.get_clock().now()
+        self.no_signal_active = False
         self.last_image_time = None
         self.cv_image_raw: Optional[np.ndarray] = None
         self.cv_image_marks: Optional[np.ndarray] = None
@@ -166,7 +170,7 @@ class NodePersonDisplay(Node):
             history=HistoryPolicy.KEEP_LAST,
             depth=5
         )
-        self.image_sub_ = self.create_subscription(Image, '/image_raw', self.image_callback, qos_sensor_data)
+        self.image_sub_ = self.create_subscription(Image, self.image_topic, self.image_callback, qos_sensor_data)
 
         # Subscribe to body positions
         self.pose_sub_ = self.create_subscription(Skeleton2DList, '/humans/bodies', self.bodies_callback, 1)
@@ -190,6 +194,7 @@ class NodePersonDisplay(Node):
         self.image_header = msg.header
         self.image_width = msg.width
         self.image_height = msg.height
+        self.last_image_time = self.get_clock().now()
 
         # Convert ROS Image message to OpenCV image
         with self.image_lock:
@@ -565,35 +570,6 @@ class NodePersonDisplay(Node):
             cv.putText(self.cv_image_marks, 'Feeling: ' + self.persons_[person_id].emotion,
                        (pt1[0], pt1[1] - emotion_offset), cv.FONT_HERSHEY_SIMPLEX, 0.5, BGR_BLACK)
 
-    # Publish detection for a given person
-    def publish_detection(self, header):
-        """Publish the detections of the persons in the image."""
-        with self.image_lock:
-            ids_print = ""
-            for id, person in self.persons_.items():
-                if person.online and self.should_display_person(person):
-                    # Check display mode
-                    if person.matched and (self.display_mode == 'both' or self.display_mode == 'all'):
-                        self.draw_body(id, c_no_hand=BGR_DARK_GREEN, c_hand_raised=BGR_RED, c_ske=BGR_GREY)
-                        self.draw_face(id, BGR_TEAL, matched=True)
-                    elif person.body_position != [0, 0, 0, 0] and (self.display_mode == 'body' or self.display_mode == 'all'):
-                        self.draw_body(id, c_no_hand=BGR_BLUE, c_hand_raised=BGR_RED, c_ske=BGR_GREY)
-                    elif person.face_position != [0, 0, 0, 0] and (self.display_mode == 'face' or self.display_mode == 'all'):
-                        self.draw_face(id, BGR_BLUE)
-
-                    ids_print += f"[{id}] | "
-                else:
-                    self.get_logger().debug(f"Skipping offline body: {id}.")
-
-            # Convert OpenCV image back to ROS Image message
-            image_marks = CvBridge().cv2_to_imgmsg(self.cv_image_marks, "bgr8")
-            image_marks.header = header
-            self.detection_pub_.publish(image_marks)
-
-            processing_duration_ms = (
-                self.get_clock().now() - self.reception_start_proc_time).nanoseconds / 1e6
-            self.get_logger().debug(f"Displaying: {ids_print}in {processing_duration_ms}.")
-
     def should_display_person(self, person):
         """Apply configured body visibility and facing filters for display."""
         half_body = self.allow_half_body or person.whole_body
@@ -643,7 +619,6 @@ def main(args=None):
     except (KeyboardInterrupt, ExternalShutdownException):
         pass
     finally:
-        node.destroy_window()
         node.destroy_node()
         if rclpy.ok():
             rclpy.shutdown()
