@@ -482,6 +482,8 @@ class NodePoseDetect(Node):
 
             currentIds.add(body.id)
 
+        # Boolen to indicate if the message should be published (faces update or deletions)
+        pub = False
         # Iterate over bodies not seen anymore and unregister corresponding publishers
         for id in knownIds:
             if id not in currentIds:
@@ -491,13 +493,13 @@ class NodePoseDetect(Node):
                 if body.nb_frames_since_last_detection > MAX_FRAMES_BODY_RETENTION:
                     self.get_logger().debug(f"Deleting body {id}.")
                     del self.detected_bodies[id]
+                    pub = True
 
         # Create msg and create new data
         main_msg = Skeleton2DList()
         main_msg.header = image_msg_header
         num_bodies = 0
         ids_print = ''
-        pub = False
         if self.use_depth:
             msg_3D = Skeleton3DList()
             msg_3D.header = image_msg_header

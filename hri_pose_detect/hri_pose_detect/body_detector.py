@@ -281,14 +281,11 @@ class Body:
 
         return msg
 
-    def generate_skeleton_msg(self, image_msg_header: Header):
-        """Generate a Skeleton2D message for this body."""
-        msg = Skeleton2D()
-        msg.key = self.id
-        msg.header = image_msg_header
-        msg.confidence = self.score
-
-        # Manual estimation of the neck landmark if both shoulders are visible
+    def _estimate_neck(self):
+        """Estimate the neck landmark as the midpoint of both shoulders, if visible."""
+        # Skip if already estimated or if any of the shoulders is not visible
+        if self.landmarks.get(Skeleton2D.NECK) is not None:
+            return
         if self.landmarks[Skeleton2D.LEFT_SHOULDER].x != 0 and self.landmarks[Skeleton2D.RIGHT_SHOULDER].x != 0:
             self.landmarks[Skeleton2D.NECK] = ImagePoint_norm(0., 0.)
             self.landmarks[Skeleton2D.NECK].x = (
@@ -299,6 +296,15 @@ class Body:
                 self.landmarks[Skeleton2D.LEFT_SHOULDER].y
                 + self.landmarks[Skeleton2D.RIGHT_SHOULDER].y
             )/2
+
+    def generate_skeleton_msg(self, image_msg_header: Header):
+        """Generate a Skeleton2D message for this body."""
+        msg = Skeleton2D()
+        msg.key = self.id
+        msg.header = image_msg_header
+        msg.confidence = self.score
+
+        self._estimate_neck()
 
         for dict_key, landmark in self.landmarks.items():
             x, y = landmark.x, landmark.y
@@ -313,6 +319,9 @@ class Body:
             self.node.get_logger().info("Cannot create Skeleton3D msg because parameters are missing.")
             return None
 
+        # Ensure NECK is estimated before building the 3D skeleton
+        self._estimate_neck()
+
         depth_model = PinholeCameraModel()
         rgb_model = PinholeCameraModel()
         depth_model.fromCameraInfo(depth_camera_info)
@@ -323,6 +332,9 @@ class Body:
         msg.header = depth_msg_header
         msg.confidence = self.score
         for dict_key, landmark in self.landmarks.items():
+            if landmark.x == 0 and landmark.y == 0:
+                continue
+
             x, y = _normalized_to_pixel_coordinates(landmark.x, landmark.y, rgb_camera_info.width, rgb_camera_info.height)
             x_d = int(((x - rgb_model.cx())
                       * depth_model.fx()
@@ -344,13 +356,14 @@ class Body:
                 # Convert depth data encoded as 16bit/mm to m
                 z = depth[y_d][x_d]/1000
 
-            uv_rectified = rgb_model.rectifyPoint((x, y))
-            position = rgb_model.projectPixelTo3dRay(uv_rectified)
-            position = np.array(position) * z
+            if z != 0 and not np.isnan(z):
+                uv_rectified = rgb_model.rectifyPoint((x, y))
+                position = rgb_model.projectPixelTo3dRay(uv_rectified)
+                position = np.array(position) * z
 
-            msg.skeleton[dict_key].x = position[0]
-            msg.skeleton[dict_key].y = position[1]
-            msg.skeleton[dict_key].z = position[2]
+                msg.skeleton[dict_key].x = position[0]
+                msg.skeleton[dict_key].y = position[1]
+                msg.skeleton[dict_key].z = position[2]
 
         return msg
 

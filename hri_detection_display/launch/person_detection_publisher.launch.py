@@ -31,16 +31,10 @@ def generate_launch_description():
 
     rviz_config_file = LaunchConfiguration('rviz_config_file')
 
-    rgb_camera_arg = DeclareLaunchArgument(
-        'rgb_camera',
-        default_value='color',
-        description='The input rgb camera namespace'
-    )
-    rgb_camera_topic_arg = DeclareLaunchArgument(
-        'rgb_camera_topic',
-        default_value=[LaunchConfiguration('rgb_camera'),
-                       '/image_raw'],
-        description='The input rgb camera image topic'
+    image_topic_arg = DeclareLaunchArgument(
+        'image_topic',
+        default_value='/color/image_raw',
+        description='Input sensor_msgs/Image topic to visualize.'
     )
     log_level_arg = DeclareLaunchArgument(
         "log-level",
@@ -51,7 +45,7 @@ def generate_launch_description():
     processing_rate_arg = DeclareLaunchArgument(
         'processing_rate',
         default_value='30',
-        description='Best effort frequency for processing input images.'
+        description='Best effort frequency for processing and rendering display frames.'
     )
     display_mode_arg = DeclareLaunchArgument(
         'display_mode',
@@ -75,6 +69,11 @@ def generate_launch_description():
         default_value='True',
         description='Allow displaying bodies that are not facing the camera.'
     )
+    no_signal_timeout_arg = DeclareLaunchArgument(
+        'no_signal_timeout',
+        default_value='2.0',
+        description='Seconds without image frames before rendering "No signal".'
+    )
     declare_rviz_config_file = DeclareLaunchArgument(
         'rviz_config_file',
         default_value=os.path.join(hri_detections_dir, 'rviz', 'person_display.rviz'),
@@ -96,26 +95,26 @@ def generate_launch_description():
 
     detection_display_node = Node(
         package='hri_detection_display',
-        executable='node_person_display',
-        name='node_person_display',
+        executable='node_person_publisher',
+        name='node_person_publisher',
         output='screen',
         parameters=[{'processing_rate': LaunchConfiguration('processing_rate'),
                      'display_mode': LaunchConfiguration('display_mode'),
                      'allow_half_body': LaunchConfiguration('allow_half_body'),
-                     'allow_back_turned': LaunchConfiguration('allow_back_turned')}],
-        arguments=['--ros-args', '--log-level', ['node_person_display:=', log_level]],
-        remappings=[
-            ('image_raw', LaunchConfiguration('rgb_camera_topic'))]
+                     'allow_back_turned': LaunchConfiguration('allow_back_turned'),
+                     'image_topic': LaunchConfiguration('image_topic'),
+                     'no_signal_timeout': LaunchConfiguration('no_signal_timeout')}],
+        arguments=['--ros-args', '--log-level', ['node_person_publisher:=', log_level]],
     )
 
     return LaunchDescription([
-        rgb_camera_arg,
-        rgb_camera_topic_arg,
+        image_topic_arg,
         log_level_arg,
         processing_rate_arg,
         display_mode_arg,
         allow_half_body_arg,
         allow_back_turned_arg,
+        no_signal_timeout_arg,
         declare_rviz_config_file,
         launch_rviz,
         rviz_node,
