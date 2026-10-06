@@ -115,6 +115,9 @@ class NodePoseDetect(Node):
             "use_depth", False, ParameterDescriptor(
                 description="Use depth info from camera"))
         self.declare_parameter(
+            "use_2d", True, ParameterDescriptor(
+                description="Publish 2D body info (Skeleton2DList)"))
+        self.declare_parameter(
             "sync_margin", 0.05, ParameterDescriptor(
                 description="Margin for RGB and Depth images sync (in seconds)"))
         self.declare_parameter(
@@ -141,6 +144,7 @@ class NodePoseDetect(Node):
         self.use_depth = self.get_parameter('use_depth').value
         self.sync_margin = self.get_parameter('sync_margin').value
         self.use_time_offset = self.get_parameter('use_time_offset').value
+        self.use_2d = self.get_parameter('use_2d').value
 
         self.body_detector = BodyDetector(
             self.get_parameter('yolo_model_path').value,
@@ -149,7 +153,11 @@ class NodePoseDetect(Node):
             self
         )
 
-        self.bodies_pub = self.create_publisher(Skeleton2DList, '/humans/bodies', 1)
+        if not self.use_2d and not self.use_depth:
+            self.get_logger().error("At least one of 'use_2d' or 'use_depth' parameters must be true.")
+            return TransitionCallbackReturn.FAILURE
+        if self.use_2d:
+            self.bodies_pub = self.create_publisher(Skeleton2DList, '/humans/bodies', 1)
         if self.use_depth:
             self.bodies3D_pub = self.create_publisher(Skeleton3DList, '/humans/bodies/skel3D', 1)
 
@@ -482,6 +490,8 @@ class NodePoseDetect(Node):
 
             currentIds.add(body.id)
 
+        # Boolen to indicate if the message should be published (faces update or deletions)
+        pub = False
         # Iterate over bodies not seen anymore and unregister corresponding publishers
         for id in knownIds:
             if id not in currentIds:
@@ -491,13 +501,13 @@ class NodePoseDetect(Node):
                 if body.nb_frames_since_last_detection > MAX_FRAMES_BODY_RETENTION:
                     self.get_logger().debug(f"Deleting body {id}.")
                     del self.detected_bodies[id]
+                    pub = True
 
         # Create msg and create new data
         main_msg = Skeleton2DList()
         main_msg.header = image_msg_header
         num_bodies = 0
         ids_print = ''
-        pub = False
         if self.use_depth:
             msg_3D = Skeleton3DList()
             msg_3D.header = image_msg_header
@@ -506,15 +516,21 @@ class NodePoseDetect(Node):
             body = self.detected_bodies[id]
             if body.do_publish:
                 pub = True
-                # Create ROI and Skeleton submsgs and add them to the main msg
-                roi_msg, skeleton_msg = body.create_msgs(image, image_msg_header)
-                main_msg.bboxes[num_bodies] = roi_msg
-                main_msg.skeletons[num_bodies] = skeleton_msg
+                roi_msg = None
+                if self.use_2d:
+                    # Create ROI and Skeleton submsgs and add them to the main msg
+                    roi_msg, skeleton_msg = body.create_msgs(image, image_msg_header)
+                    main_msg.bboxes[num_bodies] = roi_msg
+                    main_msg.skeletons[num_bodies] = skeleton_msg
+                    if self.use_depth:
+                        main_msg.depths[num_bodies] = \
+                            body.extract_body_depth_of_interest(depth, skeleton_msg, self.depth_encoding, self.camera_info, self.depth_info)
                 if self.use_depth:
                     msg_3D.skeletons[num_bodies] = \
                         body.create_depth_msg(depth, depth_msg_header, self.depth_encoding, self.camera_info, self.depth_info)
-                    main_msg.depths[num_bodies] = \
-                        body.extract_body_depth_of_interest(depth, skeleton_msg, self.depth_encoding, self.camera_info, self.depth_info)
+                    if roi_msg is None:
+                        roi_msg = body.generate_roi_msg(image, image_msg_header)
+                    msg_3D.bboxes[num_bodies] = roi_msg
                 num_bodies += 1
                 ids_print += f"[{id}] | "
             if num_bodies >= 10:
@@ -522,7 +538,8 @@ class NodePoseDetect(Node):
                 break
 
         if pub:
-            self.bodies_pub.publish(main_msg)
+            if self.use_2d:
+                self.bodies_pub.publish(main_msg)
             if self.use_depth:
                 self.bodies3D_pub.publish(msg_3D)
 

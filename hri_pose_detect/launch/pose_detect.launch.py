@@ -96,6 +96,11 @@ def generate_launch_description():
         description='When true, depth images are used\
                      to extract depth of each body in the img'
     )
+    use_2d_data_arg = DeclareLaunchArgument(
+        'use_2d',
+        default_value=['True'],
+        description='When true, 2D keypoints and bounding boxes are published in the output topics'
+    )
     sync_margin_arg = DeclareLaunchArgument(
         'sync_margin',
         default_value='0.05',
@@ -127,6 +132,7 @@ def generate_launch_description():
                      'diagnostic_period': LaunchConfiguration('diagnostic_period'),
                      'id_timeout': LaunchConfiguration('id_timeout'),
                      'use_depth': LaunchConfiguration('use_depth'),
+                     'use_2d': LaunchConfiguration('use_2d'),
                      'sync_margin': LaunchConfiguration('sync_margin'),
                      'use_time_offset': LaunchConfiguration('use_time_offset')}],
         arguments=['--ros-args', '--log-level', ['hri_pose_detect:=', log_level]],
@@ -161,6 +167,7 @@ def generate_launch_description():
         diagnostic_period_arg,
         id_timeout_arg,
         use_depth_arg,
+        use_2d_data_arg,
         sync_margin_arg,
         use_time_offset_arg,
         log_level_arg,
