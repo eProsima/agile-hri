@@ -35,7 +35,9 @@ setup(
     entry_points={
         'console_scripts': [
             'node_person_display = hri_detection_display.node_person_display:main',
+            'node_person_viewer = hri_detection_display.node_person_viewer:main',
             'node_3D_skel_display = hri_detection_display.node_3D_skel_display:main',
+            'node_3D_person_viewer = hri_detection_display.node_3D_person_viewer:main',
         ],
     },
 )
