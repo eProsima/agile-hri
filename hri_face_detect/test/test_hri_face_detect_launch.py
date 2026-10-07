@@ -47,6 +47,8 @@ class TestHRIFaceDetectIntegration(unittest.TestCase):
     def setUpClass(cls):
         os.environ["ROS_DOMAIN_ID"] = "116"
         os.environ["ROS_AUTOMATIC_DISCOVERY_RANGE"] = "LOCALHOST"
+        abs_path = os.path.abspath(os.path.dirname(__file__))
+        os.environ["FASTDDS_DEFAULT_PROFILES_FILE"] = os.path.join(abs_path, "images/image.xml")
         rclpy.init()
         cls.bridge = CvBridge()
 
@@ -67,6 +69,7 @@ class TestHRIFaceDetectIntegration(unittest.TestCase):
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             env=os.environ.copy(),  # Inherit + our overrides
+            start_new_session=True
         )
 
         self.proc = subprocess.Popen(
@@ -80,6 +83,7 @@ class TestHRIFaceDetectIntegration(unittest.TestCase):
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             env=os.environ.copy(),  # Inherit + our overrides
+            start_new_session=True
         )
 
         time.sleep(3)  # Wait for the nodes to start
@@ -102,7 +106,29 @@ class TestHRIFaceDetectIntegration(unittest.TestCase):
                 self.msg_received.set()
         self.sub_faces = self.node.create_subscription(Face2DList, "/humans/faces", faces_cb, 10)
 
-        time.sleep(1)  # Wait for the subscriptions to be established
+        time.sleep(3)  # Wait for the subscriptions to be established
+
+    def _terminate_pgroup(self, p):
+        """ INT → wait → TERM → wait → KILL. Every action to the whole process group. """
+        try:
+            os.killpg(p.pid, signal.SIGINT)
+        except ProcessLookupError:
+            pass
+        try:
+            p.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            try:
+                os.killpg(p.pid, signal.SIGTERM)
+            except ProcessLookupError:
+                pass
+            try:
+                p.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                try:
+                    os.killpg(p.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+                p.wait()
 
     def tearDown(self):
         print("Tearing down test client node")
@@ -112,14 +138,7 @@ class TestHRIFaceDetectIntegration(unittest.TestCase):
         self.node.destroy_node()
 
         for proc in (self.proc, self.proc_id_manager):
-            proc.send_signal(signal.SIGINT)
-            try:
-                ret = proc.wait(timeout=5)
-            except subprocess.TimeoutExpired:
-                proc.kill()
-                ret = proc.wait()
-            finally:
-                print(f"Process {proc.pid} terminated with return code {ret}")
+            self._terminate_pgroup(proc)
 
         print("OUTPUT:")
         stdout, stderr = self.proc.communicate()
@@ -131,8 +150,8 @@ class TestHRIFaceDetectIntegration(unittest.TestCase):
     def pub_loop(self, img_msg: Image):
         print("Starting image publishing loop")
         pub_times = 0
-        # Publish the image for 5 seconds at 30 Hz
-        while rclpy.ok() and pub_times < (5 * self.hz):
+        # Publish the image for 7 seconds at 30 Hz
+        while rclpy.ok() and pub_times < (7 * self.hz):
             img_msg.header.stamp = self.node.get_clock().now().to_msg()
             self.pub_img.publish(img_msg)
             pub_times += 1

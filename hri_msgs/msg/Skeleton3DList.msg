@@ -20,3 +20,6 @@ std_msgs/Header header
 
 # Limited to 10 bodies in each frame
 Skeleton3D[10] skeletons
+
+# Array of ROIs of each Skeleton
+NormalizedRegionOfInterest2D[10] bboxes

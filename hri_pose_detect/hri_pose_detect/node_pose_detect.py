@@ -156,6 +156,10 @@ class NodePoseDetect(Node):
         if not self.use_2d and not self.use_depth:
             self.get_logger().error("At least one of 'use_2d' or 'use_depth' parameters must be true.")
             return TransitionCallbackReturn.FAILURE
+        if not self.use_2d:
+            self.get_logger().warning(
+                "Publishing only 3D bodies ('use_2d' set to False) is not fully supported yet. "
+                "Some nodes, such as 'hri_id_manager', rely on 2D bodies published on '/humans/bodies'.")
         if self.use_2d:
             self.bodies_pub = self.create_publisher(Skeleton2DList, '/humans/bodies', 1)
         if self.use_depth:

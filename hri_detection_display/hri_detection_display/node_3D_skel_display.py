@@ -363,18 +363,22 @@ class NodeSkeleton3DDisplay(Node):
                     self.get_logger().debug(f"Using computed orientation for body {id}: {orientation}||{self.persons_[id].theta}= {abs(orientation - self.persons_[id].theta)}")
                     self.persons_[id].theta = orientation
 
-                trunk, shoulders, hip = self.create_fix_body(self.header, id, person.landmarks, person.depth, orientation)
-                final_msg.markers.extend([trunk, shoulders, hip])
-                # Use sphere for head and cylinders for each arm, each leg and the body
-                head, left_eye, right_eye = self.fill_head(self.header, id, person.landmarks, person.depth, orientation, trunk)
-                if head is not None:
-                    final_msg.markers.extend([head, left_eye, right_eye])
-                arms = self.create_arms(self.header, id, person.landmarks, shoulders)
-                if arms is not None:
-                    final_msg.markers.extend(arms)
-                legs = self.create_legs(self.header, id, person.landmarks, hip)
-                if legs is not None:
-                    final_msg.markers.extend(legs)
+                body_parts = self.create_fix_body(self.header, id, person.landmarks, person.depth, orientation)
+                if body_parts is not None:
+                    trunk, shoulders, hip = body_parts
+                    final_msg.markers.extend([m for m in body_parts if m is not None])
+                    # Use sphere for head and cylinders for each arm, each leg and the body
+                    head, left_eye, right_eye = self.fill_head(self.header, id, person.landmarks, person.depth, orientation, trunk)
+                    if head is not None:
+                        final_msg.markers.extend([head, left_eye, right_eye])
+                    if shoulders is not None:
+                        arms = self.create_arms(self.header, id, person.landmarks, shoulders)
+                        if arms is not None:
+                            final_msg.markers.extend(arms)
+                    if hip is not None:
+                        legs = self.create_legs(self.header, id, person.landmarks, hip)
+                        if legs is not None:
+                            final_msg.markers.extend(legs)
 
         self.marker_pub_.publish(final_msg)
 
@@ -523,11 +527,13 @@ class NodeSkeleton3DDisplay(Node):
     def create_fix_body(self, header, id, skeleton, median_depth, orientation):
         """Create a body marker."""
         trunk = self.create_neck_spine_cyl(header, id, skeleton, median_depth)
+        if trunk is None:
+            return None
         # Create quaternion from euler angles
         quaternion = R.from_euler('y', -orientation).as_quat()
         shoulders = self.create_shoulders_cyl(header, id, skeleton, median_depth, quaternion, trunk.pose.position)
         hip = self.create_hips_cyl(header, id, skeleton, median_depth, quaternion, trunk.pose.position)
-        return [trunk, shoulders, hip]
+        return (trunk, shoulders, hip)
 
     def cylinder_from_points(self, header, ns, id, p1, p2):
         cylinder = self.create_base_marker(header, ns, id, BGR_ORANGE, Marker.CYLINDER)
@@ -583,8 +589,10 @@ class NodeSkeleton3DDisplay(Node):
             x_dist = (skeleton[Skeleton3D.LEFT_SHOULDER].x - skeleton[Skeleton3D.RIGHT_SHOULDER].x)
 
             facing_positive_x = True
-            if abs(x_dist) < 0.08:
-                # This means that we are very close to being sideways, we can assume orthogonal rotation
+            if abs(x_dist) < 0.08 and last_orientation != -1.57:
+                # Nearly sideways - use last_orientation to decide direction
+                # Skip this shortcut if last_orientation is still the default (-1.57),
+                # so we fall through to the full arccos computation.
                 if abs(abs(last_orientation) - (np.pi)) < abs(last_orientation):
                     self.get_logger().debug(f"Returning sh ortho -pi/2 because shoulders x_dist is: {x_dist}.")
                     return -np.pi
@@ -625,8 +633,9 @@ class NodeSkeleton3DDisplay(Node):
             x_dist = (skeleton[Skeleton3D.LEFT_HIP].x - skeleton[Skeleton3D.RIGHT_HIP].x)
 
             facing_positive_x = True
-            if abs(x_dist) < 0.08:
-                # This means that we are very close to being sideways, we can assume orthogonal rotation
+            if abs(x_dist) < 0.08 and last_orientation != -1.57:
+                # Nearly sideways - use last_orientation to decide direction
+                # Skip this shortcut if last_orientation is still the default (-1.57).
                 if abs(abs(last_orientation) - (np.pi)) < abs(last_orientation):
                     self.get_logger().debug(f"Returning hip ortho -pi/2 because hip x_dist is: {x_dist}.")
                     return -np.pi
