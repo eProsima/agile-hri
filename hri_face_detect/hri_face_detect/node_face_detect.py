@@ -31,7 +31,7 @@ from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from rclpy.executors import MultiThreadedExecutor, ExternalShutdownException
 from rclpy.lifecycle import Node, TransitionCallbackReturn
 from rclpy.lifecycle.node import LifecycleState
-from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy, qos_profile_system_default
+from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
 from rclpy.time import Time
 
 from diagnostic_msgs.msg import DiagnosticArray, DiagnosticStatus, KeyValue
@@ -356,6 +356,7 @@ class NodeFaceDetect(Node):
             # Set of current IDs to avoid duplicates if two detections are too close
             currentIds = set()
 
+            self.get_logger().debug(f"Processing images with detections: {len(face_detections)}")
             for detection in face_detections:
 
                 # Have we seen this face before? -> check whether or not bounding boxes overlap
@@ -363,6 +364,7 @@ class NodeFaceDetect(Node):
                 min_dist = float('inf')
 
                 for prev_face in self.detected_faces.values():
+                    self.get_logger().debug(f"Previous faces detected: {prev_face.id}")
                     if bbs_match(prev_face.bb, detection.bb) and time_match(self.get_clock().now(), prev_face.last_detection_time, self.detection_proc_duration_ms, self.offset):
                         dist = distance_rois(prev_face.bb, detection.bb)
                         if dist < min_dist:
@@ -383,9 +385,12 @@ class NodeFaceDetect(Node):
 
                 face.nb_frames_visible += 1
 
+                self.get_logger().debug(f"Processed face {face.id} has been visible {face.nb_frames_visible}")
+
                 # If the face has been detected in MIN_FRAMES_FACE_TRACKING consecutive frames, we assign the final ID.
                 if face.nb_frames_visible == MIN_FRAMES_FACE_TRACKING:
                     # Ask for definitive ID
+                    self.get_logger().debug(f"Requesting id for face {face.id}")
                     id = self.request_id(face.bb, face.ref_face_point())
                     if id is None:
                         self.get_logger().error("Could not get a new ID for the face.")
@@ -413,6 +418,7 @@ class NodeFaceDetect(Node):
             # Boolen to indicate if the message should be published (faces update or deletions)
             pub = False
             # Iterate over faces not seen anymore, and unregister corresponding publishers
+            self.get_logger().debug(f"Known IDs are: {knownIds}. Current IDs are: {currentIds}")
             for id in knownIds:
                 if id not in currentIds:
                     face = self.detected_faces[id]
@@ -452,6 +458,7 @@ class NodeFaceDetect(Node):
                     break
 
             if pub:
+                self.get_logger().debug(f"Publishing msg with {len(currentIds)} faces")
                 self.faces_pub.publish(main_msg)
 
             self.detection_proc_duration_ms = (
