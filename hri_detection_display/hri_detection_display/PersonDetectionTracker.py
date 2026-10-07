@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from copy import deepcopy
+
 from rclpy.time import Time
 
 initial_time = Time(seconds=0, nanoseconds=0)
@@ -56,3 +58,19 @@ class PersonDetection:
         self.hips_distance = 0.0
         # Frames with hand raised (selectable to be tracked)
         self.frames_for_selection = 0
+
+    def __deepcopy__(self, memo):
+        """
+        Deep copy the person detection.
+        rclpy Time objects hold a non-copyable handle in some ROS 2 distributions, so they are copied by value.
+        """
+        result = self.__class__.__new__(self.__class__)
+        memo[id(self)] = result
+        for key, value in self.__dict__.items():
+            if key == 'times':
+                setattr(result, key, {
+                    field: Time(nanoseconds=time.nanoseconds, clock_type=time.clock_type)
+                    for field, time in value.items()})
+            else:
+                setattr(result, key, deepcopy(value, memo))
+        return result
