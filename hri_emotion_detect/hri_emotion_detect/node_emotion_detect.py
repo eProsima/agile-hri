@@ -13,8 +13,9 @@
 # limitations under the License.
 
 import rclpy
-from rclpy.node import Node
 from rclpy.executors import SingleThreadedExecutor, ExternalShutdownException
+from rclpy.node import Node
+from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
 
 from hri_msgs.msg import Expression, Face2D, Face2DList, NormalizedRegionOfInterest2D
 from sensor_msgs.msg import Image
@@ -85,7 +86,12 @@ class NodeEmotionDetect(Node):
         self.emotion_pub_ = self.create_publisher(Expression, '/humans/faces/emotion', 1)
 
         # Subscribe to original image
-        self.img_sub_ = self.create_subscription(Image, '/image', self.image_callback, 1)
+        qos_sensor_data = QoSProfile(
+            reliability=ReliabilityPolicy.BEST_EFFORT,
+            history=HistoryPolicy.KEEP_LAST,
+            depth=5
+        )
+        self.img_sub_ = self.create_subscription(Image, '/image', self.image_callback, qos_sensor_data)
 
         self.face_sub_ = self.create_subscription(Face2DList, '/humans/faces', self.faces_callback, 1)
 
