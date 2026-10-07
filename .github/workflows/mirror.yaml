@@ -7,12 +7,19 @@ on:
 jobs:
   mirror_job:
     runs-on: ubuntu-latest
-    name: Mirror main branch to latest Vulcanexus release (kilted)
+    name: Mirror main branch to supported Vulcanexus releases (kilted, jazzy)
     steps:
-    - name: Mirror action step
+    - name: Mirror to kilted
       id: mirror
       uses: google/mirror-branch-action@v1.0
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         source: 'main'
         dest: 'kilted'
+    - name: Mirror to jazzy
+      id: mirror_jazzy
+      uses: google/mirror-branch-action@v1.0
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        source: 'main'
+        dest: 'jazzy'
