@@ -405,10 +405,13 @@ class NodeFaceDetect(Node):
                 if face.nb_frames_since_last_detection > 0:
                     self.get_logger().debug(f"Face {face.id} detected again.")
                     face.nb_frames_since_last_detection = 0
+                    face.nb_frames_visible = 1
                     face.set_publish(True)
 
                 currentIds.add(face.id)
 
+            # Boolen to indicate if the message should be published (faces update or deletions)
+            pub = False
             # Iterate over faces not seen anymore, and unregister corresponding publishers
             for id in knownIds:
                 if id not in currentIds:
@@ -418,6 +421,7 @@ class NodeFaceDetect(Node):
                     if face.nb_frames_since_last_detection > MAX_FRAMES_FACE_RETENTION:
                         self.get_logger().debug(f"Deleting face {id}.")
                         del self.detected_faces[id]
+                        pub = True
 
             # Create msg and create new data
             main_msg = Face2DList()
@@ -427,7 +431,6 @@ class NodeFaceDetect(Node):
             main_msg.header = image_msg_header
             num_faces = 0
             ids_print = ''
-            pub = False
             for id in currentIds:
                 face = self.detected_faces[id]
                 if face.do_publish:
