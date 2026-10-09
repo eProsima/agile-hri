@@ -1,0 +1,5 @@
+{
+    "name": "vulcanexus_hri_cpp",
+    "type": "cmake",
+    "dependencies" : ["hri_msgs", "magic_enum", "tf2", "cv_bridge", "geometry_msgs", "hri_msgs", "libopencv-dev", "rclcpp", "rclcpp_lifecycle", "sensor_msgs", "std_msgs", "tf2_ros"]
+}

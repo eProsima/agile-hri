@@ -26,16 +26,24 @@ find_package(ament_cmake_auto REQUIRED)
 ament_auto_find_build_dependencies()
 find_package(OpenCV REQUIRED)
 find_package(magic_enum CONFIG REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(hri_msgs REQUIRED)
 
 # Targets
 set(LIBRARY_NAME "hri")
 ament_auto_add_library(${LIBRARY_NAME} SHARED DIRECTORY src/hri)
+ament_target_dependencies(${LIBRARY_NAME}
+  PUBLIC
+    rclcpp
+    geometry_msgs
+    hri_msgs
+)
 target_link_libraries(${LIBRARY_NAME} magic_enum::magic_enum)
 
 option(COMPILE_EXAMPLE "Build example" ON)
 if (COMPILE_EXAMPLE)
     find_package(cv_bridge REQUIRED)
-    find_package(rclcpp REQUIRED)
     find_package(sensor_msgs REQUIRED)
 
     add_executable(${PROJECT_NAME}_example_faces src/example_faces.cpp)

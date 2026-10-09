@@ -40,11 +40,24 @@ jobs:
     # We do not free disk space because every action runs in a fresh container.
     # In case of disk space issues, we should consider manually call docker commands instead of using
     # GitHub container support, in which case we can call the 'free_disk_space' action.
+
     - name: Checkout repository
       uses: eProsima/eProsima-CI/external/checkout@v0
       with:
         path: src/agile-hri
         ref: ${{ env.BRANCH }}
+
+    - name: Print versions
+      shell: bash
+      run: |
+        echo "===== CORE BINARIES ====="
+        for x in cmake ctest make ninja gcc g++ clang clang++; do
+          if command -v "$x" >/dev/null 2>&1; then
+            echo "--- $x ---"
+            command -v "$x"
+            "$x" --version 2>&1 | head -n 3
+          fi
+        done
 
     - name: Run install script
       shell: bash
@@ -52,7 +65,7 @@ jobs:
         source /opt/vulcanexus/${{ env.VULCANEXUS_DISTRO }}/setup.bash && bash src/agile-hri/install_hri.sh -y
 
     - name: Verify HRI installation
-      uses: eProsima/agile-hri/.github/verify_hri@main
+      uses: eProsima/agile-hri/.github/verify_hri@fix_verification_ci
       with:
         vulcanexus-distro: ${{ env.VULCANEXUS_DISTRO }}
         python-bin: python3
@@ -65,7 +78,7 @@ jobs:
         bash src/agile-hri/install_hri.sh --uninstall -y
 
     - name: Verify HRI uninstallation
-      uses: eProsima/agile-hri/.github/verify_hri@main
+      uses: eProsima/agile-hri/.github/verify_hri@fix_verification_ci
       with:
         vulcanexus-distro: ${{ env.VULCANEXUS_DISTRO }}
         python-bin: python3

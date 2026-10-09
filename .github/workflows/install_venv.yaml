@@ -38,6 +38,11 @@ jobs:
     - name: Free disk space
       uses: eProsima/eProsima-CI/ubuntu/free_disk_space@v0
 
+    - name: Get minimum supported version of CMake
+      uses: eProsima/eProsima-CI/external/get-cmake@v0
+      with:
+        cmakeVersion: '3.28.3'
+
     - name: Checkout repository
       uses: eProsima/eProsima-CI/external/checkout@v0
       with:
@@ -73,7 +78,7 @@ jobs:
         source /opt/vulcanexus/${{ env.VULCANEXUS_DISTRO }}/setup.bash && bash src/agile-hri/install_hri.sh -y --venv hri_venv
 
     - name: Verify HRI installation
-      uses: eProsima/agile-hri/.github/verify_hri@main
+      uses: eProsima/agile-hri/.github/verify_hri@fix_verification_ci
       with:
         vulcanexus-distro: ${{ env.VULCANEXUS_DISTRO }}
         python-bin: hri_venv/bin/python3
@@ -86,7 +91,7 @@ jobs:
         bash src/agile-hri/install_hri.sh --uninstall -y --venv hri_venv
 
     - name: Verify HRI uninstallation
-      uses: eProsima/agile-hri/.github/verify_hri@main
+      uses: eProsima/agile-hri/.github/verify_hri@fix_verification_ci
       with:
         vulcanexus-distro: ${{ env.VULCANEXUS_DISTRO }}
         python-bin: hri_venv/bin/python3
