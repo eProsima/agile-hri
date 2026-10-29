@@ -10,17 +10,17 @@ on:
       vulcanexus_distro:
         description: 'Vulcanexus distro to install to. It refers to the vulcanexus branch name'
         required: false
-        default: 'kilted'
+        default: 'lyrical'
 
   pull_request:
     branches:
       - 'main'
-      - 'kilted'
+      - 'lyrical'
 
   push:
     branches:
       - 'main'
-      - 'kilted'
+      - 'lyrical'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -32,7 +32,7 @@ jobs:
 
     env:
       BRANCH: ${{ inputs.branch || github.head_ref || github.ref_name }}
-      VULCANEXUS_DISTRO: ${{ inputs.vulcanexus_distro || 'kilted' }}
+      VULCANEXUS_DISTRO: ${{ inputs.vulcanexus_distro || 'lyrical' }}
 
     steps:
     - name: Free disk space

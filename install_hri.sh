@@ -22,7 +22,7 @@ set -euo pipefail
 
 VENV_PATH=""
 ASSUME_YES="false"
-INSTALLATION_PATH="/opt/vulcanexus/${VULCANEXUS_DISTRO:-kilted}"
+INSTALLATION_PATH="/opt/vulcanexus/${VULCANEXUS_DISTRO:-lyrical}"
 SUDO=""
 UNINSTALL="false"
 UNINSTALL_DEPS="true"
@@ -277,7 +277,7 @@ install()
     # -------------------- Python HRI dependencies installation --------------------
     if [[ -z "${VULCANEXUS_DISTRO:-}" ]]; then
         echo "Error: environment variable VULCANEXUS_DISTRO is not set." >&2
-        echo "Source Vulcanexus installation or manually: export VULCANEXUS_DISTRO=kilted" >&2
+        echo "Source Vulcanexus installation or manually: export VULCANEXUS_DISTRO=<distro>" >&2
         exit 1
     fi
 
