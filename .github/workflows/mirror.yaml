@@ -7,10 +7,17 @@ on:
 jobs:
   mirror_job:
     runs-on: ubuntu-latest
-    name: Mirror main branch to supported Vulcanexus releases (kilted, jazzy)
+    name: Mirror main branch to supported Vulcanexus releases (lyrical, kilted, jazzy)
     steps:
+    - name: Mirror to lyrical
+      id: mirror_lyrical
+      uses: google/mirror-branch-action@v1.0
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        source: 'main'
+        dest: 'lyrical'
     - name: Mirror to kilted
-      id: mirror
+      id: mirror_kilted
       uses: google/mirror-branch-action@v1.0
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}

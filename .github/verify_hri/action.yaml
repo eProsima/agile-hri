@@ -5,7 +5,7 @@ inputs:
   vulcanexus-distro:
     description: "Vulcanexus distribution name"
     required: true
-    default: "kilted"
+    default: "lyrical"
 
   python-bin:
     description: "Python interpreter to use (e.g. python3, .venv/bin/python)"

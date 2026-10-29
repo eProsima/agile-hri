@@ -10,17 +10,17 @@ on:
       vulcanexus_distro:
         description: 'Vulcanexus distro to install to. It refers to the vulcanexus branch name'
         required: false
-        default: 'kilted'
+        default: 'lyrical'
 
   pull_request:
     branches:
       - 'main'
-      - 'kilted'
+      - 'lyrical'
 
   push:
     branches:
       - 'main'
-      - 'kilted'
+      - 'lyrical'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -30,11 +30,11 @@ jobs:
   install_script_in_docker:
     runs-on: ubuntu-latest
     container:
-      image: eprosima/vulcanexus:${{ inputs.vulcanexus_distro || 'kilted' }}
+      image: eprosima/vulcanexus:${{ inputs.vulcanexus_distro || 'lyrical' }}
 
     env:
       BRANCH: ${{ inputs.branch || github.head_ref || github.ref_name }}
-      VULCANEXUS_DISTRO: ${{ inputs.vulcanexus_distro || 'kilted' }}
+      VULCANEXUS_DISTRO: ${{ inputs.vulcanexus_distro || 'lyrical' }}
 
     steps:
     # We do not free disk space because every action runs in a fresh container.
